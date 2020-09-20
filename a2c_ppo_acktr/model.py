@@ -51,7 +51,7 @@ class Policy(nn.Module):
     def forward(self, inputs, rnn_hxs, masks):
         raise NotImplementedError
 
-    def act(self, inputs, rnn_hxs, masks, deterministic=False):
+    def act(self, inputs, rnn_hxs, masks, deterministic=False, return_dist=False):
         value, actor_features, rnn_hxs = self.base(inputs, rnn_hxs, masks)
         dist = self.dist(actor_features)
 
@@ -62,8 +62,10 @@ class Policy(nn.Module):
 
         action_log_probs = dist.log_probs(action)
         dist_entropy = dist.entropy().mean()
-
-        return value, action, action_log_probs, rnn_hxs
+        if not return_dist:
+            return value, action, action_log_probs, rnn_hxs
+        else:
+            return value, action, action_log_probs, rnn_hxs, dist
 
     def get_value(self, inputs, rnn_hxs, masks):
         value, _, _ = self.base(inputs, rnn_hxs, masks)
@@ -196,7 +198,7 @@ class CNNBase(NNBase):
 
 
 class MLPBase(NNBase):
-    def __init__(self, num_inputs, recurrent=False, hidden_size=64):
+    def __init__(self, num_inputs, recurrent=False, hidden_size=64, activation_type='tanh'):
         super(MLPBase, self).__init__(recurrent, num_inputs, hidden_size)
 
         if recurrent:
@@ -205,13 +207,18 @@ class MLPBase(NNBase):
         init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
                                constant_(x, 0), np.sqrt(2))
 
+        if activation_type == "relu":
+            activation = nn.ReLU
+        else:
+            activation = nn.Tanh
+
         self.actor = nn.Sequential(
-            init_(nn.Linear(num_inputs, hidden_size)), nn.Tanh(),
-            init_(nn.Linear(hidden_size, hidden_size)), nn.Tanh())
+            init_(nn.Linear(num_inputs, hidden_size)), activation(),
+            init_(nn.Linear(hidden_size, hidden_size)), activation())
 
         self.critic = nn.Sequential(
-            init_(nn.Linear(num_inputs, hidden_size)), nn.Tanh(),
-            init_(nn.Linear(hidden_size, hidden_size)), nn.Tanh())
+            init_(nn.Linear(num_inputs, hidden_size)), activation(),
+            init_(nn.Linear(hidden_size, hidden_size)), activation())
 
         self.critic_linear = init_(nn.Linear(hidden_size, 1))
 
@@ -227,3 +234,36 @@ class MLPBase(NNBase):
         hidden_actor = self.actor(x)
 
         return self.critic_linear(hidden_critic), hidden_actor, rnn_hxs
+
+class MLPBaseSingle(NNBase):
+    def __init__(self, num_inputs, recurrent=False, hidden_size=64, activation_type='relu'):
+        super(MLPBaseSingle, self).__init__(recurrent, num_inputs, hidden_size)
+
+        if recurrent:
+            num_inputs = hidden_size
+
+        init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
+                               constant_(x, 0), np.sqrt(2))
+
+        if activation_type == "relu":
+            activation = nn.ReLU
+        else:
+            activation = nn.Tanh
+
+        self.actor_critic = nn.Sequential(
+            init_(nn.Linear(num_inputs, hidden_size)), activation(),
+            init_(nn.Linear(hidden_size, hidden_size)), activation())
+
+        self.critic_linear = init_(nn.Linear(hidden_size, 1))
+
+        self.train()
+
+    def forward(self, inputs, rnn_hxs, masks):
+        x = inputs
+
+        if self.is_recurrent:
+            x, rnn_hxs = self._forward_gru(x, rnn_hxs, masks)
+
+        hidden = self.actor_critic(x)
+
+        return self.critic_linear(hidden), hidden, rnn_hxs
