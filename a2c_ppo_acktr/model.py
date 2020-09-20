@@ -200,7 +200,7 @@ class CNNBase(NNBase):
 class MLPBase(NNBase):
     def __init__(self, num_inputs, recurrent=False, hidden_size=64, activation_type='tanh'):
         super(MLPBase, self).__init__(recurrent, num_inputs, hidden_size)
-
+        self.input_size = num_inputs
         if recurrent:
             num_inputs = hidden_size
 
@@ -238,7 +238,7 @@ class MLPBase(NNBase):
 class MLPBaseSingle(NNBase):
     def __init__(self, num_inputs, recurrent=False, hidden_size=64, activation_type='relu'):
         super(MLPBaseSingle, self).__init__(recurrent, num_inputs, hidden_size)
-
+        self.input_size = num_inputs
         if recurrent:
             num_inputs = hidden_size
 
