@@ -251,8 +251,8 @@ class MLPBaseSingle(NNBase):
             activation = nn.Tanh
 
         self.actor_critic = nn.Sequential(
-            init_(nn.Linear(num_inputs, hidden_size)), activation(),
-            init_(nn.Linear(hidden_size, hidden_size)), activation())
+            init_(nn.Linear(num_inputs, hidden_size)), activation()
+        )
 
         self.critic_linear = init_(nn.Linear(hidden_size, 1))
 
