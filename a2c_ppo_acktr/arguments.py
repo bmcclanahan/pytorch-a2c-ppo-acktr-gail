@@ -8,6 +8,8 @@ def get_args():
     parser.add_argument(
         '--algo', default='a2c', help='algorithm to use: a2c | ppo | acktr')
     parser.add_argument(
+        '--activation-type', default='relu', help='hidden layer activations: relu | tanh')
+    parser.add_argument(
         '--gail',
         action='store_true',
         default=False,
@@ -38,8 +40,8 @@ def get_args():
     parser.add_argument(
         '--gamma',
         type=float,
-        default=0.99,
-        help='discount factor for rewards (default: 0.99)')
+        default=1.0,
+        help='discount factor for rewards (default: 1.0)')
     parser.add_argument(
         '--use-gae',
         action='store_true',
@@ -87,6 +89,11 @@ def get_args():
         type=int,
         default=4,
         help='number of ppo epochs (default: 4)')
+    parser.add_argument(
+        '--hidden-size',
+        type=int,
+        default=64,
+        help='hidden layer size (default: 4)')
     parser.add_argument(
         '--num-mini-batch',
         type=int,

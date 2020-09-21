@@ -28,7 +28,7 @@ def walk_forward(entry_pr, action_val, opn, close, high, low, cursor, n):
 # we will also have equal profit targets and stop losses
 class Environment(gym.Env):
 
-    def __init__(self, df, features, actions=[0.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0):
+    def __init__(self, df, features, meta_cols, actions=[0.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0):
         super(Environment, self).__init__()
         self.df = df
         self.df = self.df.sort_values('time')
@@ -38,13 +38,30 @@ class Environment(gym.Env):
         self.min_obs = min_obs
         self.cursor = self.min_obs
         self.features = features
+        self.meta_cols =meta_cols
         self.actions = actions
         self.info = {'episode': {'r': 0}}
         self.action_space = spaces.Discrete(len(self.actions))
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(len(features) + add_features,),
-            dtype=np.float64
+            dtype=np.float32
         )
+        self.process_features()
+
+    def process_features(self):
+        df = self.df[self.features[:-1] + self.meta_cols] # excludind secs from features
+        df.loc[:, 'rsi'] = df.rsi.fillna(50)
+        df = df.replace([np.nan, np.inf, -np.inf], 0)
+        df.loc[:, 'secs'] = ((df.time.dt.hour * 3600) + (df.time.dt.minute * 60) + (df.time.dt.second))
+        sec_min, sec_max = df.secs.min(), df.secs.max()
+        df.loc[:, 'secs'] -= sec_min
+        df.loc[:, 'secs'] /= (sec_max - sec_min)
+        #df.loc[:, ['rsi', 'sto']] /= 100
+        mn = df[['rsi', 'sto', 'mv_std', 'mean_dist', 'std_frac', 'close_diff']].mean().values
+        std = df[['rsi', 'sto', 'mv_std', 'mean_dist', 'std_frac', 'close_diff']].std().values
+        df.loc[:, ['rsi', 'sto', 'mv_std', 'mean_dist', 'std_frac', 'close_diff']] -= std
+        df.loc[:, ['rsi', 'sto', 'mv_std', 'mean_dist', 'std_frac', 'close_diff']] /= std
+        self.df = df
 
     def set_date(self, date):
         self.date = date
@@ -55,19 +72,19 @@ class Environment(gym.Env):
     def reset(self):
         self.cursor = self.min_obs
         self.day_df = self.df.loc[self.df.date == self.date]
-        return self.day_df.iloc[self.cursor][self.features]
+        return self.day_df.iloc[self.cursor][self.features].values.astype(np.float32)
 
 
     def step(self, action):
         action_val = self.actions[action]
         self.info['episode']['r'] = 0
         if (self.cursor + 1) >= self.day_df.shape[0]:
-            return self.day_df.iloc[-1][self.features], 0, True, self.info['episode']['r']
+            return self.day_df.iloc[-1][self.features].values.astype(np.float32), 0, True, self.info
 
         if action_val == 0:
             self.cursor += 1
-            state = self.day_df.iloc[self.cursor][self.features]
-            return state, 0, False, self.info['episode']['r']
+            state = self.day_df.iloc[self.cursor][self.features].values.astype(np.float32)
+            return state, 0, False, self.info
 
         # In live trading the bars will be built in realtime
         # So we will assume it's possible to get a fill at the closing price
@@ -81,7 +98,7 @@ class Environment(gym.Env):
         )
         self.cursor = cursor
         self.info['episode']['r'] = action_val
-        return self.day_df.iloc[self.cursor][self.features], action_val, done, self.info['episode']['r']
+        return self.day_df.iloc[self.cursor][self.features].values.astype(np.float32), action_val, done, self.info
 
     def render(self):
         print('not implemented. Sorry.')

@@ -18,8 +18,12 @@ from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.model import Policy, MLPBaseSingle
 from a2c_ppo_acktr.storage import RolloutStorage
 from evaluation import evaluate
+from gym.envs.registration import register
 
-from futures_env.environment import Environment
+register(
+    id='FuturesEnv-v0',
+    entry_point='futures_env.env1:Environment',
+)
 
 FIXED_NUM_STEPS = 800
 
@@ -48,7 +52,12 @@ def main():
         envs.observation_space.shape,
         envs.action_space,
         base=MLPBaseSingle,
-        base_kwargs={'recurrent': args.recurrent_policy})
+        base_kwargs={
+            'recurrent': args.recurrent_policy,
+            'hidden_size': args.hidden_size,
+            'activation_type': args.activation_type
+        }
+    )
     actor_critic.to(device)
 
     if args.algo == 'a2c':
@@ -135,8 +144,6 @@ def main():
                  for info in infos])
             rollouts.insert(obs, recurrent_hidden_states, action,
                             action_log_prob, value, reward, masks, bad_masks)
-            if np.all(done):
-                break
 
         with torch.no_grad():
             next_value = actor_critic.get_value(
@@ -195,13 +202,6 @@ def main():
             ob_rms = utils.get_vec_normalize(envs).ob_rms
             evaluate(actor_critic, ob_rms, args.env_name, args.seed,
                      args.num_processes, eval_log_dir, device)
-        rollouts = RolloutStorage(FIXED_NUM_STEPS, args.num_processes,
-                                  envs.observation_space.shape, envs.action_space,
-                                  actor_critic.recurrent_hidden_state_size)
-        obs = envs.reset()
-        rollouts.obs[0].copy_(obs)
-        rollouts.to(device)
-
-
+        
 if __name__ == "__main__":
     main()
