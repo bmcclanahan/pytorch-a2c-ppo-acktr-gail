@@ -118,6 +118,11 @@ def get_args():
         default=10e6,
         help='number of environment steps to train (default: 10e6)')
     parser.add_argument(
+        '--num-episodes',
+        type=int,
+        default=10,
+        help='number of episodes')
+    parser.add_argument(
         '--env-name',
         default='PongNoFrameskip-v4',
         help='environment to train on (default: PongNoFrameskip-v4)')
