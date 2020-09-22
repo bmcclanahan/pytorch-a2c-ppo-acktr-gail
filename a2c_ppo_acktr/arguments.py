@@ -82,8 +82,8 @@ def get_args():
     parser.add_argument(
         '--num-steps',
         type=int,
-        default=5,
-        help='number of forward steps in A2C (default: 5)')
+        default=10,
+        help='number of forward steps in A2C (default: 5) number of steps per update')
     parser.add_argument(
         '--ppo-epoch',
         type=int,
@@ -125,10 +125,10 @@ def get_args():
         default=10e6,
         help='number of environment steps to train (default: 10e6)')
     parser.add_argument(
-        '--num-episodes',
+        '--num-updates',
         type=int,
         default=10,
-        help='number of episodes')
+        help='number of updates')
     parser.add_argument(
         '--env-name',
         default='PongNoFrameskip-v4',

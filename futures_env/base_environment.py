@@ -40,7 +40,7 @@ class Environment(gym.Env):
         self.features = features
         self.meta_cols =meta_cols
         self.actions = actions
-        self.info = {'episode': {'r': 0}}
+        self.total_rewards = 0
         self.action_space = spaces.Discrete(len(self.actions))
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(len(features) + add_features,),
@@ -72,33 +72,38 @@ class Environment(gym.Env):
     def reset(self):
         self.cursor = self.min_obs
         self.day_df = self.df.loc[self.df.date == self.date]
+        self.total_rewards = 0
         return self.day_df.iloc[self.cursor][self.features].values.astype(np.float32)
 
 
     def step(self, action):
         action_val = self.actions[action]
-        self.info['episode']['r'] = 0
         if (self.cursor + 1) >= self.day_df.shape[0]:
-            return self.day_df.iloc[-1][self.features].values.astype(np.float32), 0, True, self.info
-
-        if action_val == 0:
+            state, reward, done = self.day_df.iloc[-1][self.features].values.astype(np.float32), 0, True
+        elif action_val == 0:
             self.cursor += 1
             state = self.day_df.iloc[self.cursor][self.features].values.astype(np.float32)
-            return state, 0, False, self.info
-
-        # In live trading the bars will be built in realtime
-        # So we will assume it's possible to get a fill at the closing price
-        # of the bar.
-        close = self.day_df.iloc[self.cursor].close
-        direction = np.sign(action_val)
-        cursor, action_val, done = walk_forward(
-            close, action_val, self.day_df.open.values,
-            self.day_df.close.values, self.day_df.high.values,
-            self.day_df.low.values, self.cursor, self.day_df.shape[0]
-        )
-        self.cursor = cursor
-        self.info['episode']['r'] = action_val
-        return self.day_df.iloc[self.cursor][self.features].values.astype(np.float32), action_val, done, self.info
+            state, reward, done = state, 0, False
+        else:
+            # In live trading the bars will be built in realtime
+            # So we will assume it's possible to get a fill at the closing price
+            # of the bar.
+            close = self.day_df.iloc[self.cursor].close
+            direction = np.sign(action_val)
+            cursor, action_val, done = walk_forward(
+                close, action_val, self.day_df.open.values,
+                self.day_df.close.values, self.day_df.high.values,
+                self.day_df.low.values, self.cursor, self.day_df.shape[0]
+            )
+            self.cursor = cursor
+            state, reward, done = self.day_df.iloc[self.cursor][self.features].values.astype(np.float32), action_val, done
+        self.total_rewards += reward
+        if done:
+            info = {'episode': {'r': self.total_rewards}}
+            self.total_rewards = 0
+        else:
+            info = {}
+        return state, reward, done, info
 
     def render(self):
         print('not implemented. Sorry.')

@@ -25,11 +25,10 @@ register(
     entry_point='futures_env.env1:Environment',
 )
 
-FIXED_NUM_STEPS = 800
+
 
 def main():
     args = get_args()
-
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
 
@@ -102,7 +101,7 @@ def main():
             shuffle=True,
             drop_last=drop_last)
 
-    rollouts = RolloutStorage(FIXED_NUM_STEPS, args.num_processes,
+    rollouts = RolloutStorage(args.num_steps, args.num_processes,
                               envs.observation_space.shape, envs.action_space,
                               actor_critic.recurrent_hidden_state_size)
 
@@ -113,7 +112,8 @@ def main():
     episode_rewards = deque(maxlen=10)
 
     start = time.time()
-    num_updates = args.num_episodes
+    num_updates = args.num_updates
+    total_episodes = 0
     for j in range(num_updates):
 
         if args.use_linear_lr_decay:
@@ -122,7 +122,7 @@ def main():
                 agent.optimizer, j, num_updates,
                 agent.optimizer.lr if args.algo == "acktr" else args.lr)
 
-        for step in range(FIXED_NUM_STEPS): # max number of steps in a day
+        for step in range(args.num_steps): # max number of steps in a day
             # Sample actions
             with torch.no_grad():
                 value, action, action_log_prob, recurrent_hidden_states = actor_critic.act(
@@ -135,6 +135,7 @@ def main():
             for info in infos:
                 if 'episode' in info.keys():
                     episode_rewards.append(info['episode']['r'])
+                    total_episodes += 1
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor(
@@ -161,7 +162,7 @@ def main():
                 discr.update(gail_train_loader, rollouts,
                              utils.get_vec_normalize(envs)._obfilt)
 
-            for step in range(FIXED_NUM_STEPS): # made change here
+            for step in range(args.num_steps): # made change here
                 rollouts.rewards[step] = discr.predict_reward(
                     rollouts.obs[step], rollouts.actions[step], args.gamma,
                     rollouts.masks[step])
@@ -190,8 +191,8 @@ def main():
         if j % args.log_interval == 0 and len(episode_rewards) > 1:
             end = time.time()
             print(
-                "Updates {}, \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
-                .format(j,
+                "Updates {}, Episodes {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
+                .format(j, total_episodes,
                         len(episode_rewards), np.mean(episode_rewards),
                         np.median(episode_rewards), np.min(episode_rewards),
                         np.max(episode_rewards), dist_entropy, value_loss,
@@ -202,6 +203,6 @@ def main():
             ob_rms = utils.get_vec_normalize(envs).ob_rms
             evaluate(actor_critic, ob_rms, args.env_name, args.seed,
                      args.num_processes, eval_log_dir, device)
-        
+
 if __name__ == "__main__":
     main()
