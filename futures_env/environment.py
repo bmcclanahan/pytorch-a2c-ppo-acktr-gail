@@ -67,7 +67,7 @@ def walk_forward3(entry_pr, action_val, opn, close, high, low, cursor, n):
 # we will also have equal profit targets and stop losses
 class Environment(gym.Env):
 
-    def __init__(self, df, features, meta_cols, actions=[0.0, 3.0, 5.0, 10.0],
+    def __init__(self, df, features, meta_cols, actions=[0.0, 2.0, 3.0, 5.0, 10.0],
                  min_obs=5, add_features=0, skip_state=True, process_feats=True):
         super(Environment, self).__init__()
         self.df = df
@@ -162,7 +162,7 @@ class Environment(gym.Env):
 
 class EnvironmentNoSkip(Environment):
 
-    def __init__(self, df, features, meta_cols, actions=[0.0, 3.0, 5.0, 10.0],
+    def __init__(self, df, features, meta_cols, actions=[0.0, 2.0, 3.0, 5.0, 10.0],
                  min_obs=5, add_features=0, skip_state=True,
                  process_feats=True):
         super(EnvironmentNoSkip, self).__init__(df, features, meta_cols,
@@ -223,7 +223,7 @@ class EnvSkipState(Environment):
         df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
         feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']
         meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time']
-        super(EnvSkipState, self).__init__(df, feature_cols, meta_cols, actions=[0.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0)
+        super(EnvSkipState, self).__init__(df, feature_cols, meta_cols, actions=[0.0, 2.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0)
         super(EnvSkipState, self).set_date(self.unique_dates[1])
 
 
@@ -233,7 +233,7 @@ class EnvFull(Environment):
         df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
         feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']
         meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time']
-        super(EnvFull, self).__init__(df, feature_cols, meta_cols, actions=[0.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0,
+        super(EnvFull, self).__init__(df, feature_cols, meta_cols, actions=[0.0, 2.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0,
                                       skip_state=False)
         super(EnvFull, self).set_date(self.unique_dates[1])
 
@@ -244,6 +244,6 @@ class EnvFullV2(EnvironmentNoSkip):
         df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
         feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']
         meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time']
-        super(EnvFullV2, self).__init__(df, feature_cols, meta_cols, actions=[0.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0,
+        super(EnvFullV2, self).__init__(df, feature_cols, meta_cols, actions=[0.0, 2.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0,
                                        skip_state=False)
         super(EnvFullV2, self).set_date(self.unique_dates[1])
