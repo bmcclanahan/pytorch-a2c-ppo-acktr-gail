@@ -22,9 +22,18 @@ from gym.envs.registration import register
 
 register(
     id='FuturesEnv-v0',
-    entry_point='futures_env.env1:Environment',
+    entry_point='futures_env.environment:EnvSkipState',
 )
 
+register(
+    id='FuturesEnvFull-v0',
+    entry_point='futures_env.environment:EnvFull',
+)
+
+register(
+    id='FuturesEnvFull-v1',
+    entry_point='futures_env.environment:EnvFullV2',
+)
 
 
 def main():
