@@ -33,7 +33,6 @@ def walk_forward2(entry_pr, action_val, opn, close, high, low, cursor, n):
     while True:
         cursor += 1
         if cursor >= n:
-            print('got here ', -np.abs(action_val))
             return n - 1, -np.abs(action_val), True
         if direction == 1:
             if (entry_pr - low[cursor]) >= action_val:
