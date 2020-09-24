@@ -68,7 +68,8 @@ def walk_forward3(entry_pr, action_val, opn, close, high, low, cursor, n):
 class Environment(gym.Env):
 
     def __init__(self, df, features, meta_cols, actions=[0.0, 2.0, 3.0, 5.0, 10.0],
-                 min_obs=5, add_features=0, skip_state=True, process_feats=True):
+                 min_obs=5, add_features=0, skip_state=True, process_feats=True,
+                 random_samp=False):
         super(Environment, self).__init__()
         self.df = df
         self.df = self.df.sort_values('time')
@@ -88,6 +89,7 @@ class Environment(gym.Env):
         )
         self.skip_state = skip_state
         self.trade_terminal_state = None
+        self.random_samp = random_samp
         if process_feats:
             self.process_features()
 
@@ -114,6 +116,9 @@ class Environment(gym.Env):
 
     def reset(self):
         self.cursor = self.min_obs
+        if self.random_samp:
+            index = np.random.randint(0, self.unique_dates.shape[0])
+            self.date = self.unique_dates[index]
         self.day_df = self.df.loc[self.df.date == self.date]
         self.total_rewards = 0
         return self.day_df.iloc[self.cursor][self.features].values.astype(np.float32)
@@ -227,13 +232,14 @@ class EnvironmentNoSkip(Environment):
 class EnvironmentContinuous(Environment):
 
     def __init__(self, df, features, meta_cols, min_obs=5, add_features=0,
-                 process_feats=True, low=-10, high=10):
+                 process_feats=True, low=-10, high=10, random_samp=False):
         super(EnvironmentContinuous, self).__init__(
             df, features, meta_cols,
             actions=actions,
             min_obs=min_obs,
             add_features=add_features,
-            process_feats=process_feats
+            process_feats=process_feats,
+            random_samp=random_samp
         )
         self.action_space = spaces.Box(low=low, high=high, shape=(1,))
         self.high = high
