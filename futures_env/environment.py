@@ -118,9 +118,12 @@ class Environment(gym.Env):
         self.total_rewards = 0
         return self.day_df.iloc[self.cursor][self.features].values.astype(np.float32)
 
-
     def step(self, action):
         action_val = self.actions[action]
+        state, reward, done, info = self.step_w_action(action_val)
+        return state, reward, done, info
+
+    def step_w_action(self, action_val):
         if (self.cursor + 1) >= self.day_df.shape[0]:
             state, reward, done = self.day_df.iloc[-1][self.features].values.astype(np.float32), 0, True
         elif action_val == 0:
@@ -155,6 +158,7 @@ class Environment(gym.Env):
             info = {}
         return state, reward, done, info
 
+
     def render(self):
         print('not implemented. Sorry.')
 
@@ -178,6 +182,10 @@ class EnvironmentNoSkip(Environment):
 
     def step(self, action):
         action_val = self.actions[action]
+        state, reward, done, info = self.step_w_action(action_val)
+        return state, reward, done, info
+
+    def step_w_action(self, action_val):
         if ((self.cursor + 1) >= self.day_df.shape[0]) and (not self.in_trade):
             state, reward, done = self.day_df.iloc[-1][self.features].values.astype(np.float32), 0, True
         elif (action_val == 0) and (not self.in_trade):
