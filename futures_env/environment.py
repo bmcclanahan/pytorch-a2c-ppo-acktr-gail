@@ -232,21 +232,25 @@ class EnvironmentNoSkip(Environment):
 class EnvironmentContinuous(Environment):
 
     def __init__(self, df, features, meta_cols, min_obs=5, add_features=0,
-                 process_feats=True, low=-10, high=10, random_samp=False):
+                 process_feats=True, low=-10, high=10, random_samp=False,
+                 skip_state=True, action_space_shape=(1,)):
         super(EnvironmentContinuous, self).__init__(
             df, features, meta_cols,
-            actions=actions,
             min_obs=min_obs,
             add_features=add_features,
             process_feats=process_feats,
-            random_samp=random_samp
+            random_samp=random_samp,
+            skip_state=skip_state
         )
-        self.action_space = spaces.Box(low=low, high=high, shape=(1,))
+        self.action_space = spaces.Box(
+            low=low, high=high,
+            shape=action_space_shape
+        )
         self.high = high
         self.low = low
 
     def step(self, action):
-        action_val = np.clip(action[0], self.low, self.high)
+        action_val = np.round(np.clip(action[0], self.low, self.high))
         state, reward, done, info = super(EnvironmentContinuous, self).step_w_action(action_val)
         return state, reward, done, info
 
@@ -279,8 +283,9 @@ class EnvFullCont(EnvironmentContinuous):
         feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']
         meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time']
         super(EnvFullCont, self).__init__(
-            df, features, meta_cols, min_obs=5, add_features=0,
-            process_feats=True, low=-10, high=10
+            df, feature_cols, meta_cols, min_obs=5, add_features=0,
+            process_feats=True, low=-10, high=10, skip_state=True,
+            action_space_shape=(1,)
         )
         super(EnvFullCont, self).set_date(self.unique_dates[1])
 
