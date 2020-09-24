@@ -224,6 +224,28 @@ class EnvironmentNoSkip(Environment):
         return state, reward, done, info
 
 
+class EnvironmentContinuous(Environment):
+
+    def __init__(self, df, features, meta_cols, min_obs=5, add_features=0,
+                 process_feats=True, low=-10, high=10):
+        super(EnvironmentContinuous, self).__init__(
+            df, features, meta_cols,
+            actions=actions,
+            min_obs=min_obs,
+            add_features=add_features,
+            process_feats=process_feats
+        )
+        self.action_space = spaces.Box(low=low, high=high, shape=(1,))
+        self.high = high
+        self.low = low
+
+    def step(self, action):
+        action_val = np.clip(action[0], self.low, self.high)
+        state, reward, done, info = super(EnvironmentContinuous, self).step_w_action(action_val)
+        return state, reward, done, info
+
+
+
 class EnvSkipState(Environment):
 
     def __init__(self):
@@ -243,6 +265,18 @@ class EnvFull(Environment):
         super(EnvFull, self).__init__(df, feature_cols, meta_cols, actions=[0.0, 2.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0,
                                       skip_state=False)
         super(EnvFull, self).set_date(self.unique_dates[1])
+
+class EnvFullCont(EnvironmentContinuous):
+
+    def __init__(self):
+        df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
+        feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']
+        meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time']
+        super(EnvFullCont, self).__init__(
+            df, features, meta_cols, min_obs=5, add_features=0,
+            process_feats=True, low=-10, high=10
+        )
+        super(EnvFullCont, self).set_date(self.unique_dates[1])
 
 # figure out how to parameterize these environments
 class EnvFullV2(EnvironmentNoSkip):
