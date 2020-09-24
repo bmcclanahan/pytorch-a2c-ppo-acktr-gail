@@ -33,7 +33,8 @@ def walk_forward2(entry_pr, action_val, opn, close, high, low, cursor, n):
     while True:
         cursor += 1
         if cursor >= n:
-            return n - 1, -action_val, True
+            print('got here ', -np.abs(action_val))
+            return n - 1, -np.abs(action_val), True
         if direction == 1:
             if (entry_pr - low[cursor]) >= action_val:
                 return cursor, -action_val, False
@@ -50,7 +51,7 @@ def walk_forward3(entry_pr, action_val, opn, close, high, low, cursor, n):
     direction = np.sign(action_val)
     cursor += 1
     if cursor >= n:
-        return n - 1, -action_val, True
+        return n - 1, -np.abs(action_val), True
     if direction == 1:
         if (entry_pr - low[cursor]) >= action_val:
             return cursor, -action_val, False
@@ -163,13 +164,12 @@ class Environment(gym.Env):
 class EnvironmentNoSkip(Environment):
 
     def __init__(self, df, features, meta_cols, actions=[0.0, 2.0, 3.0, 5.0, 10.0],
-                 min_obs=5, add_features=0, skip_state=True,
+                 min_obs=5, add_features=0,
                  process_feats=True):
         super(EnvironmentNoSkip, self).__init__(df, features, meta_cols,
                                                 actions=actions,
                                                 min_obs=min_obs,
                                                 add_features=add_features,
-                                                skip_state=True,
                                                 process_feats=process_feats)
         self.in_trade = False
         self.trade_action = 0

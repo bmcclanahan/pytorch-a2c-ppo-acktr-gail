@@ -28,65 +28,85 @@ def gather_rewards_and_states(env, action):
 def test_env_no_skip():
     features = ['secs']
     meta_cols = ['open', 'high', 'low', 'close']
+    for sign in [-1, 1]:
+        #scenario 1
+        price = sign * np.array([1, 2, 3, 3, 4, 5, 6, 9, 8, 7, 9, 5, 4])
+        df = build_test_df(price)
+        env = EnvironmentNoSkip(df, features, meta_cols,
+                                actions=(sign * np.array([0, 1, 2])),
+                                min_obs=0,
+                                add_features=0, process_feats=False)
+        action = np.array([0, 2, 0, 1, 2, 2, 0, 1, 0, 1, 0, 0, 0])
+        expected_rewards = np.array([0, 0, 0, 2, 0, 2, 0, -1, 0, 1, 0, 0, 0])
+        rewards, states = gather_rewards_and_states(env, action)
+        assert np.array_equal(
+            np.array(rewards), np.array(expected_rewards).astype(np.float64)
+        )
+        assert np.array_equal(
+            np.array(states).flatten(),
+            np.array([ 1.,  2.,  3.,  4.,  5.,  6.,
+                       7.,  8.,  9., 10., 11., 12., 12.])
+        )
 
-    #scenario 1
-    price =  np.array([1, 2, 3, 3, 4, 5, 6, 9, 8, 7, 9, 5, 4])
-    df = build_test_df(price)
-    env = EnvironmentNoSkip(df, features, meta_cols, actions=[0, 1, 2], min_obs=0,
-                            add_features=0, skip_state=False, process_feats=False)
-    action =  np.array([0, 2, 0, 1, 2, 2, 0, 1, 0, 1, 0, 0, 0])
-    expected_rewards = np.array([0, 0, 0, 2, 0, 2, 0, -1, 0, 1, 0, 0, 0])
-    rewards, states = gather_rewards_and_states(env, action)
-    assert np.array_equal(np.array(rewards), np.array(expected_rewards).astype(np.float64))
-    assert np.array_equal(
-        np.array(states).flatten(),
-        np.array([ 1.,  2.,  3.,  4.,  5.,  6.,  7.,  8.,  9., 10., 11., 12., 12.])
-    )
-
-    #scenario 2
-    price =  np.array([1, 2, 3, 3, 4, 5, 6, 9, 8, 7, 6, 5, 5])
-    action = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
-    df = build_test_df(price)
-    env = EnvironmentNoSkip(df, features, meta_cols, actions=[0, 4], min_obs=0,
-                            add_features=0, skip_state=False, process_feats=False)
-    rewards, states = gather_rewards_and_states(env, action)
-    expected_rewards = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -4])
-    assert np.array_equal(np.array(rewards), np.array(expected_rewards).astype(np.float64))
-    assert np.array_equal(
-        np.array(states).flatten(),
-        np.array([ 1.,  2.,  3.,  4.,  5.,  6.,  7.,  8.,  9., 10., 11., 12., 12.])
-    )
+        #scenario 2
+        price =  sign * np.array([1, 2, 3, 3, 4, 5, 6, 9, 8, 7, 6, 5, 5])
+        action = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+        df = build_test_df(price)
+        env = EnvironmentNoSkip(
+            df, features, meta_cols, actions=(sign * np.array([0, 4])),
+            min_obs=0,
+            add_features=0, process_feats=False
+        )
+        rewards, states = gather_rewards_and_states(env, action)
+        expected_rewards = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -4])
+        assert np.array_equal(
+            np.array(rewards), np.array(expected_rewards).astype(np.float64)
+        )
+        assert np.array_equal(
+            np.array(states).flatten(),
+            np.array([ 1.,  2.,  3.,  4.,  5.,  6.,  7.,
+                       8.,  9., 10., 11., 12., 12.])
+        )
 
 def test_env_trade_everything():
     features = ['secs']
     meta_cols = ['open', 'high', 'low', 'close']
-
-    #scenario 1
-    price =  np.array([1, 2, 3, 3, 4, 5, 6, 9, 8, 7, 9, 5, 4])
-    df = build_test_df(price)
-    env = Environment(df, features, meta_cols, actions=[0, 1, 2], min_obs=0,
-                      add_features=0, skip_state=False, process_feats=False)
-    action =  np.array([0, 2, 0, 1, 2, 2, 0, 1, 0, 1, 0, 0, 0])
-    expected_rewards = np.array([0, 2, 0, 1, 2, 2, 0, -1, 0, 1, 0, 0, 0])
-    rewards, states = gather_rewards_and_states(env, action)
-    assert np.array_equal(np.array(rewards), np.array(expected_rewards).astype(np.float64))
-    assert np.array_equal(
-        np.array(states).flatten(),
-        np.array([ 1.,  2.,  3.,  4.,  5.,  6.,  7.,  8.,  9., 10., 11., 12., 12.])
-    )
+    for sign in [-1, 1]:
+        #scenario 1
+        price =  sign * np.array([1, 2, 3, 3, 4, 5, 6, 9, 8, 7, 9, 5, 4])
+        df = build_test_df(price)
+        env = Environment(df, features, meta_cols,
+                          actions=(sign * np.array([0, 1, 2])),
+                          min_obs=0,
+                          add_features=0, skip_state=False, process_feats=False)
+        action =  np.array([0, 2, 0, 1, 2, 2, 0, 1, 0, 1, 0, 0, 0])
+        expected_rewards = np.array([0, 2, 0, 1, 2, 2, 0, -1, 0, 1, 0, 0, 0])
+        rewards, states = gather_rewards_and_states(env, action)
+        assert np.array_equal(
+            np.array(rewards), np.array(expected_rewards).astype(np.float64)
+        )
+        assert np.array_equal(
+            np.array(states).flatten(),
+            np.array([ 1.,  2.,  3.,  4.,  5.,  6.,  7.,
+                       8.,  9., 10., 11., 12., 12.])
+        )
 
 def test_env_skip():
     features = ['secs']
     meta_cols = ['open', 'high', 'low', 'close']
-    price =  np.array([1, 2, 3, 3, 4, 5, 6, 9, 8, 7, 9, 5, 4])
-    df = build_test_df(price)
-    env = Environment(df, features, meta_cols, actions=[0, 1, 2], min_obs=0,
-                      add_features=0, skip_state=True, process_feats=False)
-    action =  np.array([0, 2, 1, 2, 1, 0, 1, 0, 0, 0,0,0,0,0])
-    expected_rewards = np.array([0, 2, 1, 2, -1, 0, 1, 0, 0, 0])
-    rewards, states = gather_rewards_and_states(env, action)
-    assert np.array_equal(np.array(rewards), np.array(expected_rewards).astype(np.float64))
-    assert np.array_equal(
-        np.array(states).flatten(),
-        np.array([ 1.,  4.,  5.,  7.,  8.,  9., 10., 11., 12., 12.])
-    )
+    for sign in [-1, 1]:
+        price = sign * np.array([1, 2, 3, 3, 4, 5, 6, 9, 8, 7, 9, 5, 4])
+        df = build_test_df(price)
+        env = Environment(df, features, meta_cols,
+                          actions=(sign * np.array([0, 1, 2])), min_obs=0,
+                          add_features=0, skip_state=True, process_feats=False)
+        action =  np.array([0, 2, 1, 2, 1, 0, 1, 0, 0, 0,0,0,0,0])
+        expected_rewards = np.array([0, 2, 1, 2, -1, 0, 1, 0, 0, 0])
+        rewards, states = gather_rewards_and_states(env, action)
+        assert np.array_equal(
+            np.array(rewards), np.array(expected_rewards).astype(np.float64)
+        )
+        assert np.array_equal(
+            np.array(states).flatten(),
+            np.array([ 1.,  4.,  5.,  7.,  8.,  9., 10., 11., 12., 12.])
+        )
