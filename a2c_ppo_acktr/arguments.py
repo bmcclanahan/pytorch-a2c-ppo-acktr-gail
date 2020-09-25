@@ -3,7 +3,7 @@ import argparse
 import torch
 
 
-def get_args():
+def get_args(cl=True):
     parser = argparse.ArgumentParser(description='RL')
     parser.add_argument(
         '--algo', default='a2c', help='algorithm to use: a2c | ppo | acktr')
@@ -161,13 +161,16 @@ def get_args():
         action='store_true',
         default=False,
         help='use a linear schedule on the learning rate')
-    args = parser.parse_args()
+    if cl:
+        args = parser.parse_args()
 
-    args.cuda = not args.no_cuda and torch.cuda.is_available()
+        args.cuda = not args.no_cuda and torch.cuda.is_available()
 
-    assert args.algo in ['a2c', 'ppo', 'acktr']
-    if args.recurrent_policy:
-        assert args.algo in ['a2c', 'ppo'], \
-            'Recurrent policy is not implemented for ACKTR'
+        assert args.algo in ['a2c', 'ppo', 'acktr']
+        if args.recurrent_policy:
+            assert args.algo in ['a2c', 'ppo'], \
+                'Recurrent policy is not implemented for ACKTR'
 
-    return args
+        return args
+    else:
+        return parser

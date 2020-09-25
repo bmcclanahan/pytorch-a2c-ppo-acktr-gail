@@ -19,6 +19,7 @@ from a2c_ppo_acktr.model import Policy, MLPBaseSingle
 from a2c_ppo_acktr.storage import RolloutStorage
 from evaluation import evaluate
 from gym.envs.registration import register
+from futures_env.environment import EnvironmentContinuous,  EnvFullCont
 
 register(
     id='FuturesEnv-v0',
@@ -141,7 +142,7 @@ def main():
             with torch.no_grad():
                 value, action, action_log_prob, recurrent_hidden_states = actor_critic.act(
                     rollouts.obs[step], rollouts.recurrent_hidden_states[step],
-                    rollouts.masks[step])
+                    rollouts.masks[step], deterministic=(j > 1110))
 
             # Obser reward and next obs
             obs, reward, done, infos = envs.step(action)
@@ -180,11 +181,11 @@ def main():
                 rollouts.rewards[step] = discr.predict_reward(
                     rollouts.obs[step], rollouts.actions[step], args.gamma,
                     rollouts.masks[step])
+        if j < 1110:
+            rollouts.compute_returns(next_value, args.use_gae, args.gamma,
+                                     args.gae_lambda, args.use_proper_time_limits)
 
-        rollouts.compute_returns(next_value, args.use_gae, args.gamma,
-                                 args.gae_lambda, args.use_proper_time_limits)
-
-        value_loss, action_loss, dist_entropy = agent.update(rollouts)
+            value_loss, action_loss, dist_entropy = agent.update(rollouts)
 
         rollouts.after_update()
 
@@ -217,6 +218,72 @@ def main():
             ob_rms = utils.get_vec_normalize(envs).ob_rms
             evaluate(actor_critic, ob_rms, args.env_name, args.seed,
                      args.num_processes, eval_log_dir, device)
+
+        if False:
+            model = actor_critic
+            env = EnvFullCont()
+            def select_action(state, hxs, masks):
+                state = torch.from_numpy(state).float()
+                state_value, action, action_log_probs, hxs = model.act(state.unsqueeze(0), hxs, masks, deterministic=True, return_dist=False)
+                action = action.squeeze()
+                action_log_prob = action_log_probs.squeeze()
+                return action.item(), hxs
+
+            def trainer():
+                running_reward = 0
+                last_rewards = []
+                masks = torch.ones(model.base._hidden_size).unsqueeze(0)
+
+                hxs = torch.zeros(model.base._hidden_size).unsqueeze(0)
+
+                entry_times = []
+                trade_actions = []
+                exit_times = []
+                positions = []
+
+                # reset environment and episode reward
+                state = env.reset()
+                ep_reward = 0
+                done = False
+                in_trade = False
+                trade_end_tm = 0
+                trade_meta_set = False
+                counter = 0
+                while not done:
+                    counter += 1
+
+                    # select action from policy
+                    action, hxs = select_action(state, hxs, masks)
+                    if (np.round(np.clip(action, env.low, env.high)) != 0) and (not in_trade):
+                        in_trade = True
+                        entry_times.append(state[-1])
+                        positions.append(np.sign(action))
+                        trade_meta_set = False
+
+                    # take the action
+                    state, reward, done, info = env.step([action])
+
+
+                    if in_trade and (not trade_meta_set):
+                        ep_reward += reward
+                        trade_end_tm = env.trade_terminal_state[-1]
+                        trade_actions.append(action)
+                        exit_times.append(trade_end_tm)
+                        trade_meta_set = True
+
+                    if in_trade and (state[-1] >= trade_end_tm):
+                        in_trade = False
+
+                    if done:
+                        break
+
+                print('Episode {}\tLast reward: {:.2f}\, Last action: {}'.format(
+                      1, ep_reward, running_reward, action))
+                return last_rewards, entry_times, exit_times, positions
+
+            trainer()
+
+
 
 if __name__ == "__main__":
     main()

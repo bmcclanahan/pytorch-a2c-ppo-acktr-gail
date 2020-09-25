@@ -90,6 +90,7 @@ class Environment(gym.Env):
         self.skip_state = skip_state
         self.trade_terminal_state = None
         self.random_samp = random_samp
+        self.entries = []
         if process_feats:
             self.process_features()
 
@@ -121,6 +122,10 @@ class Environment(gym.Env):
             self.date = self.unique_dates[index]
         self.day_df = self.df.loc[self.df.date == self.date]
         self.total_rewards = 0
+        '''
+        print('resetting')
+        print(self.day_df.iloc[self.cursor][self.features].values.astype(np.float32))
+        '''
         return self.day_df.iloc[self.cursor][self.features].values.astype(np.float32)
 
     def step(self, action):
@@ -139,6 +144,7 @@ class Environment(gym.Env):
             # In live trading the bars will be built in realtime
             # So we will assume it's possible to get a fill at the closing price
             # of the bar.
+            self.entries.append(self.cursor)
             cursor_start = self.cursor
             close = self.day_df.iloc[self.cursor].close
 
@@ -158,6 +164,9 @@ class Environment(gym.Env):
         self.total_rewards += reward
         if done:
             info = {'episode': {'r': self.total_rewards}}
+            #print('entries ', self.entries)
+            #print('total rewards ', self.total_rewards)
+            self.entries = []
             self.total_rewards = 0
         else:
             info = {}
@@ -262,7 +271,8 @@ class EnvSkipState(Environment):
         df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
         feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']
         meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time']
-        super(EnvSkipState, self).__init__(df, feature_cols, meta_cols, actions=[-10, -5.0, -3,0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0)
+        super(EnvSkipState, self).__init__(df, feature_cols, meta_cols, actions=[-10, -5.0, -3,0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0,
+                                           random_samp=False)
         super(EnvSkipState, self).set_date(self.unique_dates[1])
 
 

@@ -90,11 +90,13 @@ def make_vec_envs(env_name,
     else:
         envs = DummyVecEnv(envs)
 
+    '''
     if len(envs.observation_space.shape) == 1:
         if gamma is None:
             envs = VecNormalize(envs, ret=False)
         else:
             envs = VecNormalize(envs, gamma=gamma)
+    '''
 
     envs = VecPyTorch(envs, device)
 
@@ -177,6 +179,11 @@ class VecPyTorch(VecEnvWrapper):
 
     def step_wait(self):
         obs, reward, done, info = self.venv.step_wait()
+        '''
+        if np.any(done):
+            print('loc 4')
+            print(obs[np.where(done)[0], :])
+        '''
         obs = torch.from_numpy(obs).float().to(self.device)
         reward = torch.from_numpy(reward).unsqueeze(dim=1).float()
         return obs, reward, done, info
