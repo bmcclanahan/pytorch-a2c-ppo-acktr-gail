@@ -90,13 +90,12 @@ def make_vec_envs(env_name,
     else:
         envs = DummyVecEnv(envs)
 
-    '''
     if len(envs.observation_space.shape) == 1:
-        if gamma is None:
+        if True: #gamma is None: # hack to avoid scaling rewards here
             envs = VecNormalize(envs, ret=False)
         else:
             envs = VecNormalize(envs, gamma=gamma)
-    '''
+
 
     envs = VecPyTorch(envs, device)
 
