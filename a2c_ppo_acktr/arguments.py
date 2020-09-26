@@ -161,6 +161,10 @@ def get_args(cl=True):
         action='store_true',
         default=False,
         help='use a linear schedule on the learning rate')
+    parser.add_argument(
+        '--tensor-board-log-dir',
+        default='runs/run1',
+        help='directory to save tensorboad logs (default: runs/run1)')
     if cl:
         args = parser.parse_args()
 

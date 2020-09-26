@@ -20,6 +20,7 @@ from a2c_ppo_acktr.storage import RolloutStorage
 from evaluation import evaluate
 from gym.envs.registration import register
 from futures_env.environment import EnvironmentContinuous,  EnvFullCont
+from torch.utils.tensorboard import SummaryWriter
 
 register(
     id='FuturesEnv-v0',
@@ -59,6 +60,8 @@ def main():
     args = get_args()
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
+
+    writer = SummaryWriter(args.tensor_board_log_dir)
 
     if args.cuda and torch.cuda.is_available() and args.cuda_deterministic:
         torch.backends.cudnn.benchmark = False
@@ -217,13 +220,21 @@ def main():
 
         if j % args.log_interval == 0 and len(episode_rewards) > 1:
             end = time.time()
+            rw_mean = np.mean(episode_rewards)
+            rw_median = np.median(episode_rewards)
+            rw_min = np.min(episode_rewards)
+            rw_max = np.max(episode_rewards)
             print(
                 "Updates {}, Episodes {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
                 .format(j, total_episodes,
-                        len(episode_rewards), np.mean(episode_rewards),
-                        np.median(episode_rewards), np.min(episode_rewards),
-                        np.max(episode_rewards), dist_entropy, value_loss,
+                        len(episode_rewards), rw_mean,
+                        rw_median, rw_min,
+                        rw_max, dist_entropy, value_loss,
                         action_loss))
+            writer.add_scalar('mean reward', rw_mean, j)
+            writer.add_scalar('median reward', rw_mean, j)
+            writer.add_scalar('max reward', rw_max, j)
+            writer.add_scalar('min reward', rw_min, j)
 
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):
