@@ -41,6 +41,12 @@ register(
     entry_point='futures_env.environment:EnvFullCont',
 )
 
+register(
+    id='FuturesEnvContTraining-v0',
+    entry_point='futures_env.environment:EnvFullContTraining',
+)
+
+
 
 def main():
     args = get_args()

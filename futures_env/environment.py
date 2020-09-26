@@ -4,6 +4,7 @@ import numpy as np
 from numba import jit
 import gym
 from gym import spaces
+import datetime
 
 
 @jit('Tuple((i8, f8, b1))(f8, f8, f8[:], f8[:], f8[:], f8[:], i8, i8)', nopython=True)
@@ -318,3 +319,19 @@ class EnvFullV2(EnvironmentNoSkip):
         meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time']
         super(EnvFullV2, self).__init__(df, feature_cols, meta_cols, actions=[0.0, 2.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0)
         super(EnvFullV2, self).set_date(self.unique_dates[1])
+
+
+class EnvFullContTraining(EnvironmentContinuous):
+
+    def __init__(self):
+        df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
+        feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']
+        meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time']
+        df = df.loc[df.time.between(datetime.datetime(2010, 1, 1), datetime.datetime(2013, 1, 1))]
+        super(EnvFullContTraining, self).__init__(
+            df, feature_cols, meta_cols, min_obs=5, add_features=0,
+            process_feats=True, low=-10, high=10, skip_state=True,
+            normalize_feats=False,
+            action_space_shape=(1,),
+            random_samp=True
+        )
