@@ -46,6 +46,13 @@ register(
     entry_point='futures_env.environment:EnvFullContTraining',
 )
 
+register(
+    id='FuturesEnvTraining-v0',
+    entry_point='futures_env.environment:EnvSkipStateTraining',
+)
+
+
+
 
 
 def main():
@@ -130,7 +137,7 @@ def main():
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
 
-    episode_rewards = deque(maxlen=10)
+    episode_rewards = deque(maxlen=100)
 
     start = time.time()
     num_updates = args.num_updates

@@ -335,3 +335,13 @@ class EnvFullContTraining(EnvironmentContinuous):
             action_space_shape=(1,),
             random_samp=True
         )
+
+class EnvSkipStateTraining(Environment):
+
+    def __init__(self):
+        df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
+        feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']
+        meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time']
+        df = df.loc[df.time.between(datetime.datetime(2010, 1, 1), datetime.datetime(2013, 1, 1))]
+        super(EnvSkipStateTraining, self).__init__(df, feature_cols, meta_cols, actions=[-10, -5.0, -3,0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0,
+                                                   random_samp=True)
