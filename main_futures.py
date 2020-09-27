@@ -90,6 +90,7 @@ def main():
                          args.gamma, args.log_dir, device, False,
                          env_df=train_df)
     if args.load_saved_model is not None:
+        print(f'loading saved model {args.load_saved_model}')
         actor_critic = torch.load(args.load_saved_model)[0]
     else:
         actor_critic = Policy(
