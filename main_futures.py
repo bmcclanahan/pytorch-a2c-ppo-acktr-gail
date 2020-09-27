@@ -236,14 +236,17 @@ def main():
             torch.save([
                 actor_critic,
                 getattr(utils.get_vec_normalize(envs), 'ob_rms', None)
-            ], os.path.join(save_path, args.env_name + ".pt"))
+            ], os.path.join(save_path,
+                            args.env_name + '-' + writer_date + ".pt"))
 
-        if j % args.log_interval == 0 and len(episode_rewards) > 1:
+        if ((j % args.log_interval == 0) or (j == num_updates - 1)) and len(episode_rewards) > 1:
             end = time.time()
             rw_mean = np.mean(episode_rewards)
             rw_median = np.median(episode_rewards)
             rw_min = np.min(episode_rewards)
             rw_max = np.max(episode_rewards)
+            normalizer = getattr(utils.get_vec_normalize(envs), 'ob_rms', None)
+            print('normalizer count ', normalizer.count)
             print(
                 "Updates {}, Episodes {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
                 .format(j, total_episodes,

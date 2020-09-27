@@ -172,7 +172,7 @@ def get_args(cl=True):
     parser.add_argument(
         '--training-dataset',
         default=None,
-        help='validation dataset (default: None)')
+        help='training dataset (default: None)')
     parser.add_argument(
         '--validation-interval',
         type=int,
