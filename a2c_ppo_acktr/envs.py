@@ -81,7 +81,8 @@ def make_vec_envs(env_name,
                   device,
                   allow_early_resets,
                   num_frame_stack=None,
-                  env_df=None):
+                  env_df=None,
+                  normalizer=None):
     envs = [
         make_env(env_name, seed, i, log_dir, allow_early_resets, env_df=env_df)
         for i in range(num_processes)
@@ -95,9 +96,9 @@ def make_vec_envs(env_name,
     if len(envs.observation_space.shape) == 1:
         print('using normalize vector environment...')
         if True: #gamma is None: # hack to avoid scaling rewards here
-            envs = VecNormalize(envs, ret=False)
+            envs = VecNormalize(envs, ret=False, normalizer=normalizer)
         else:
-            envs = VecNormalize(envs, gamma=gamma)
+            envs = VecNormalize(envs, gamma=gamma, normalizer=normalizer)
 
 
     envs = VecPyTorch(envs, device)
@@ -192,9 +193,13 @@ class VecPyTorch(VecEnvWrapper):
 
 
 class VecNormalize(VecNormalize_):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, normalizer=None, **kwargs):
         super(VecNormalize, self).__init__(*args, **kwargs)
+        if normalizer is not None:
+            print('restoring saved mean and variance')
+            self.ob_rms = normalizer
         self.training = True
+
 
     def _obfilt(self, obs, update=True):
         if self.ob_rms:

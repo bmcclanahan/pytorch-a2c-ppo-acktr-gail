@@ -86,13 +86,18 @@ def main():
     torch.set_num_threads(1)
     device = torch.device("cuda:0" if args.cuda else "cpu")
 
-    envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
-                         args.gamma, args.log_dir, device, False,
-                         env_df=train_df)
+    normalizer = None
     if args.load_saved_model is not None:
         print(f'loading saved model {args.load_saved_model}')
-        actor_critic = torch.load(args.load_saved_model)[0]
-    else:
+        model_data = torch.load(args.load_saved_model)
+        actor_critic = model_data[0]
+        normalizer = model_data[1]
+
+    envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
+                         args.gamma, args.log_dir, device, False,
+                         env_df=train_df, normalizer=normalizer)
+
+    if args.load_saved_model is None:
         actor_critic = Policy(
             envs.observation_space.shape,
             envs.action_space,
