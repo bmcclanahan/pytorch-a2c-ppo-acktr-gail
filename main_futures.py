@@ -257,7 +257,7 @@ def main():
                 normalizer.mean = 1
                 normalizer.var = 1
             avg_reward = validation.validator(actor_critic, normalizer, val_env)
-            writer.add_scalar('validation mean reward', rw_mean, j)
+            writer.add_scalar('validation mean reward', avg_reward, j)
 
 
         if (args.eval_interval is not None and len(episode_rewards) > 1

@@ -53,8 +53,8 @@ def validate_date(date, model, normalizer, env, masks, hxs, iter=1):
         if done:
             break
 
-    print('Validation episode {} reward: {:.2f}'.format(
-          iter, ep_reward))
+    #print('Validation episode {} reward: {:.2f}'.format(
+    #      iter, ep_reward))
     return ep_reward, entry_times, exit_times, positions
 
 def validator(model, normalizer, env):
@@ -67,4 +67,6 @@ def validator(model, normalizer, env):
                                            masks, hxs, iter=iter)
         total_rewards.append(ep_reward)
         hxs *= 0
-    return np.mean(total_rewards)
+    mean_reward = np.mean(total_rewards)
+    print(f'validation mean reward {mean_reward}')
+    return mean_reward
