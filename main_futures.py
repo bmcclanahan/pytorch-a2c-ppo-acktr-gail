@@ -2,6 +2,7 @@ import copy
 import glob
 import os
 import time
+import datetime
 from collections import deque
 
 import gym
@@ -10,6 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import pandas as pd
 
 from a2c_ppo_acktr import algo, utils
 from a2c_ppo_acktr.algo import gail
@@ -21,6 +23,8 @@ from evaluation import evaluate
 from gym.envs.registration import register
 from futures_env.environment import EnvironmentContinuous,  EnvFullCont
 from torch.utils.tensorboard import SummaryWriter
+
+from validation import validation
 
 register(
     id='FuturesEnv-v0',
@@ -53,19 +57,26 @@ register(
 )
 
 
-
-
-
 def main():
     args = get_args()
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
-
-    writer = SummaryWriter(args.tensor_board_log_dir)
+    writer_date = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    writer = SummaryWriter(f'{args.tensor_board_log_dir}-{writer_date}')
 
     if args.cuda and torch.cuda.is_available() and args.cuda_deterministic:
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
+
+    validate = False
+    if args.validation_dataset is not None:
+        val_df = pd.read_parquet(args.validation_dataset)
+        val_env = gym.make(args.env_name, df=val_df, set_date=False)
+        validate = True
+
+    train_df = None
+    if args.training_dataset is not None:
+        train_df = pd.read_parquet(args.training_dataset)
 
     log_dir = os.path.expanduser(args.log_dir)
     eval_log_dir = log_dir + "_eval"
@@ -76,18 +87,21 @@ def main():
     device = torch.device("cuda:0" if args.cuda else "cpu")
 
     envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
-                         args.gamma, args.log_dir, device, False)
-
-    actor_critic = Policy(
-        envs.observation_space.shape,
-        envs.action_space,
-        base=MLPBaseSingle,
-        base_kwargs={
-            'recurrent': args.recurrent_policy,
-            'hidden_size': args.hidden_size,
-            'activation_type': args.activation_type
-        }
-    )
+                         args.gamma, args.log_dir, device, False,
+                         env_df=train_df)
+    if args.load_saved_model is not None:
+        actor_critic = torch.load(args.load_saved_model)[0]
+    else:
+        actor_critic = Policy(
+            envs.observation_space.shape,
+            envs.action_space,
+            base=MLPBaseSingle,
+            base_kwargs={
+                'recurrent': args.recurrent_policy,
+                'hidden_size': args.hidden_size,
+                'activation_type': args.activation_type
+            }
+        )
     actor_critic.to(device)
 
     if args.algo == 'a2c':
@@ -235,6 +249,16 @@ def main():
             writer.add_scalar('median reward', rw_mean, j)
             writer.add_scalar('max reward', rw_max, j)
             writer.add_scalar('min reward', rw_min, j)
+
+        if (((j % args.validation_interval) == 0) or (j == num_updates - 1)) and validate:
+            normalizer = getattr(utils.get_vec_normalize(envs), 'ob_rms', None)
+            if normalizer is None:
+                normalizer = lambda: None
+                normalizer.mean = 1
+                normalizer.var = 1
+            avg_reward = validation.validator(actor_critic, normalizer, val_env)
+            writer.add_scalar('validation mean reward', rw_mean, j)
+
 
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):

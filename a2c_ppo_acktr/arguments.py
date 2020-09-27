@@ -165,6 +165,23 @@ def get_args(cl=True):
         '--tensor-board-log-dir',
         default='runs/run1',
         help='directory to save tensorboad logs (default: runs/run1)')
+    parser.add_argument(
+        '--validation-dataset',
+        default=None,
+        help='validation dataset (default: None)')
+    parser.add_argument(
+        '--training-dataset',
+        default=None,
+        help='validation dataset (default: None)')
+    parser.add_argument(
+        '--validation-interval',
+        type=int,
+        default=500,
+        help='validation interval (default: 500)')
+    parser.add_argument(
+        '--load-saved-model',
+        default=None,
+        help='location of pretrained saved model to load (default: None)')
     if cl:
         args = parser.parse_args()
 
