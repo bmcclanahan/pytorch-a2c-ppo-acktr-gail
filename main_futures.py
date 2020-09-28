@@ -78,6 +78,11 @@ def main():
     if args.training_dataset is not None:
         train_df = pd.read_parquet(args.training_dataset)
 
+    if args.save_interval is not None:
+        save_interval = args.save_interval
+    else:
+        save_interval = args.num_updates
+
     log_dir = os.path.expanduser(args.log_dir)
     eval_log_dir = log_dir + "_eval"
     utils.cleanup_log_dir(log_dir)
@@ -232,7 +237,7 @@ def main():
                 os.makedirs(save_path)
             except OSError:
                 pass
-
+            print('saving model...')
             torch.save([
                 actor_critic,
                 getattr(utils.get_vec_normalize(envs), 'ob_rms', None)
@@ -246,7 +251,6 @@ def main():
             rw_min = np.min(episode_rewards)
             rw_max = np.max(episode_rewards)
             normalizer = getattr(utils.get_vec_normalize(envs), 'ob_rms', None)
-            print('normalizer count ', normalizer.count)
             print(
                 "Updates {}, Episodes {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
                 .format(j, total_episodes,
