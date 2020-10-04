@@ -26,6 +26,9 @@ def validate_date(date, model, normalizer, env, masks, hxs, iter=1):
     exit_times = []
     positions = []
     env.set_date(date)
+    continuous = False
+    if env.action_space.__class__.__name__ == "Box":
+        continuous = True
     state = env.reset()
     ep_reward = 0
     done = False
@@ -35,21 +38,20 @@ def validate_date(date, model, normalizer, env, masks, hxs, iter=1):
         # select action from policy
         action, hxs = select_action(model, normalize(state, normalizer.mean,
                                     normalizer.var), hxs, masks)
-        if (action != 0):
+        if (env.actions[int(action)] != 0) and not in_trade:
             in_trade = True
             entry_times.append(state[-1])
-            positions.append(np.sign(action))
+            positions.append(np.sign(env.actions[int(action)] ))
 
         # take the action
-        state, reward, done, info = env.step(int(action))
+        state, reward, done, info = env.step(int(action) if not continuous else [action])
 
-        if in_trade:
+        if in_trade and not env.in_trade:
             ep_reward += reward
             trade_end_tm = state[-1]
             trade_actions.append(action)
             exit_times.append(trade_end_tm)
             in_trade = False
-
         if done:
             break
 

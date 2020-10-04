@@ -95,6 +95,7 @@ class Environment(gym.Env):
         self.entries = []
         self.low=low
         self.high=high
+        self.in_trade = False
         if process_feats:
             self.process_features()
         if normalize_feats:
@@ -248,6 +249,81 @@ class EnvironmentNoSkip(Environment):
         return state, reward, done, info
 
 
+class EnvironmentNoSkipPosSpace(Environment):
+
+    def __init__(self, df, features, meta_cols, min_obs=5, add_features=1,
+                 process_feats=True):
+        self.actions = [-1, 0, 1]
+        super(EnvironmentNoSkipPosSpace, self).__init__(df, features, meta_cols,
+                                                actions=self.actions,
+                                                min_obs=min_obs,
+                                                add_features=add_features,
+                                                process_feats=process_feats)
+        self.in_trade = False
+        self.trade_entries = []
+        self.trade_exits = []
+        self.trade_entry_price = None
+        self.trade_position = 0
+
+    def reset(self):
+        state = super(EnvironmentNoSkipPosSpace, self).reset()
+        return np.hstack(([0], state)).astype(np.float32)
+
+    def step(self, action):
+        action_val = self.actions[action]
+        state, reward, done, info = self.step_w_action(action_val)
+        return state, reward, done, info
+
+    def step_w_action(self, action_val):
+        if ((self.cursor + 1) >= self.day_df.shape[0]) and (not self.in_trade):
+            state = self.day_df.iloc[-1][self.features].values.astype(np.float32)
+            state, reward, done = np.hstack(([0], state)).astype(np.float32), 0, True
+        elif (action_val == 0) and (not self.in_trade):
+            self.cursor += 1
+            state = self.day_df.iloc[self.cursor][self.features].values.astype(np.float32)
+            state, reward, done = np.hstack(([0], state)).astype(np.float32), 0, False
+        else:
+            # In live trading the bars will be built in realtime
+            # So we will assume it's possible to get a fill at the closing price
+            # of the bar.
+            next_cursor = self.cursor + 1
+            if not self.in_trade:
+                self.in_trade = True
+                self.trade_position = action_val
+                self.trade_entry_price = self.day_df.iloc[self.cursor].close # this may be a little innacurate because we're using the close of the current bar which is the state
+                self.trade_entries.append(self.day_df.iloc[self.cursor][self.features].values.astype(np.float32)[-1])
+                state_reward = 0
+                reward = 0
+                state = self.day_df.iloc[next_cursor][self.features].values.astype(np.float32)
+                done = False
+            elif ((next_cursor) >= self.day_df.shape[0]) or (action_val == -self.trade_position):
+                state_reward = 0
+                cursor = min(next_cursor, self.day_df.shape[0] - 1)
+                reward = (self.day_df.iloc[cursor].open - self.trade_entry_price) * self.trade_position
+                state = self.day_df.iloc[cursor][self.features].values.astype(np.float32)
+                self.in_trade = False
+                self.trade_exits.append(state[-1])
+                done = (next_cursor) >= self.day_df.shape[0]
+            else:
+                state_reward = (self.day_df.iloc[next_cursor].open - self.trade_entry_price) * self.trade_position
+                reward = 0
+                state = self.day_df.iloc[next_cursor][self.features].values.astype(np.float32)
+                done = False
+
+            state = np.hstack(([state_reward], state)).astype(np.float32)
+
+            self.cursor = next_cursor
+
+        self.total_rewards += reward
+        if done:
+            info = {'episode': {'r': self.total_rewards}}
+            self.total_rewards = 0
+            self.trade_entries = []
+            self.trade_exits = []
+        else:
+            info = {}
+        return state, reward, done, info
+
 class EnvironmentContinuous(Environment):
 
     def __init__(self, df, features, meta_cols, min_obs=5, add_features=0,
@@ -330,10 +406,21 @@ class EnvFullV2(EnvironmentNoSkip):
         if set_date:
             super(EnvFullV2, self).set_date(self.unique_dates[1])
 
+class EnvFullPosSpace(EnvironmentNoSkipPosSpace):
+
+    def __init__(self, df=None, set_date=True):
+        if df is None:
+            df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
+        feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']
+        meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time']
+        super(EnvFullPosSpace, self).__init__(df, feature_cols, meta_cols, min_obs=5, add_features=1)
+        if set_date:
+            super(EnvFullPosSpace, self).set_date(self.unique_dates[1])
+
 
 class EnvFullContTraining(EnvironmentContinuous):
 
-    def __init__(self, df=None):
+    def __init__(self, df=None, set_date=True):
         if df is None:
             df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
             df = df.loc[df.time.between(datetime.datetime(2010, 1, 1), datetime.datetime(2013, 1, 1))]
@@ -354,7 +441,7 @@ class EnvSkipStateTraining(Environment):
         if df is None:
             df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
             df = df.loc[df.time.between(datetime.datetime(2010, 1, 1), datetime.datetime(2013, 1, 1))]
-        feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']
+        feature_cols = ['mv_std', 'std_frac', 'sto', 'rsi', 'secs']
         meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time']
         super(EnvSkipStateTraining, self).__init__(df, feature_cols, meta_cols, actions=[-10, -5.0, -3,0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0,
                                                    random_samp=True)

@@ -56,6 +56,11 @@ register(
     entry_point='futures_env.environment:EnvSkipStateTraining',
 )
 
+register(
+    id='FuturesEnvFullPosSpace-v0',
+    entry_point='futures_env.environment:EnvFullPosSpace',
+)
+
 
 def main():
     args = get_args()
