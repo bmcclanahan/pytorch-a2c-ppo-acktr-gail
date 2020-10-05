@@ -133,8 +133,8 @@ class Environment(gym.Env):
             self.date = self.unique_dates[index]
         self.day_df = self.df.loc[self.df.date == self.date]
         self.total_rewards = 0
+        #print('resetting ', self.cursor, self.day_df.shape, self.date)
         '''
-        print('resetting')
         print(self.day_df.iloc[self.cursor][self.features].values.astype(np.float32))
         '''
         return self.day_df.iloc[self.cursor][self.features].values.astype(np.float32)
@@ -252,13 +252,14 @@ class EnvironmentNoSkip(Environment):
 class EnvironmentNoSkipPosSpace(Environment):
 
     def __init__(self, df, features, meta_cols, min_obs=5, add_features=1,
-                 process_feats=True):
+                 process_feats=True, random_samp=True):
         self.actions = [-1, 0, 1]
         super(EnvironmentNoSkipPosSpace, self).__init__(df, features, meta_cols,
                                                 actions=self.actions,
                                                 min_obs=min_obs,
                                                 add_features=add_features,
-                                                process_feats=process_feats)
+                                                process_feats=process_feats,
+                                                random_samp=random_samp)
         self.in_trade = False
         self.trade_entries = []
         self.trade_exits = []
@@ -408,12 +409,13 @@ class EnvFullV2(EnvironmentNoSkip):
 
 class EnvFullPosSpace(EnvironmentNoSkipPosSpace):
 
-    def __init__(self, df=None, set_date=True):
+    def __init__(self, df=None, set_date=True, random_samp=True):
         if df is None:
             df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
         feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']
         meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time']
-        super(EnvFullPosSpace, self).__init__(df, feature_cols, meta_cols, min_obs=5, add_features=1)
+        super(EnvFullPosSpace, self).__init__(df, feature_cols, meta_cols, min_obs=5, add_features=1,
+                                              random_samp=random_samp)
         if set_date:
             super(EnvFullPosSpace, self).set_date(self.unique_dates[1])
 
@@ -441,7 +443,8 @@ class EnvSkipStateTraining(Environment):
         if df is None:
             df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
             df = df.loc[df.time.between(datetime.datetime(2010, 1, 1), datetime.datetime(2013, 1, 1))]
-        feature_cols = ['mv_std', 'std_frac', 'sto', 'rsi', 'secs']
-        meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time']
+        #feature_cols = ['mv_std', 'std_frac', 'sto', 'rsi', 'secs'] 'rsi', 'adx'
+        feature_cols = ['pr_diff_ewa', 'volume_roc', 'sto', 'rsi', 'adx', 'secs']
+        meta_cols = ['open', 'high', 'low', 'close', 'date', 'time']
         super(EnvSkipStateTraining, self).__init__(df, feature_cols, meta_cols, actions=[-10, -5.0, -3,0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0,
                                                    random_samp=True)
