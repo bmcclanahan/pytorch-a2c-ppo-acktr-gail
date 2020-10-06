@@ -15,14 +15,14 @@ class CNNEnvironment(Environment):
 
     def __init__(self, df, diff_features, meta_cols, scaler_features=[],
                  actions=[0.0, 2.0, 3.0, 5.0, 10.0],
-                 window_len=360, min_obs=5, add_features=0, skip_state=True,
+                 window_len=360, min_obs=5, skip_state=True,
                  normalize_feats=False, low=-10, high=10, process_feats=True,
                  random_samp=False, trade_start_secs=int(3600 * 9.5)):
-        super(Environment, self).__init__(
+        super(CNNEnvironment, self).__init__(
             df, diff_features, meta_cols,
             actions=actions,
             min_obs=min_obs,
-            add_features=add_features,
+            add_features=0,
             process_feats=process_feats,
             random_samp=random_samp,
             normalize_feats=normalize_feats,
@@ -34,36 +34,43 @@ class CNNEnvironment(Environment):
         self.trade_start_secs = trade_start_secs
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf,
-            shape=(len(features) + add_features, window_len),
+            shape=(len(self.all_features), window_len),
             dtype=np.float32
         )
         self.unique_dates = sorted(self.unique_dates)[1:]
         self.window_len = window_len
 
-
     def process_features(self):
+        df = self.df
+        self.df.loc[:, 'secs'] = ((df.time.dt.hour * 3600) + (df.time.dt.minute * 60) + (df.time.dt.second))
         for feat in self.features:
             self.df.loc[:, feat + '_diff'] = self.df[feat].diff()
 
     def reset(self):
         self.cursor = self.min_obs
         if self.random_samp:
-            index = np.random.randint(0, self.unique_dates.shape[0])
+            index = np.random.randint(0, len(self.unique_dates))
             self.date = self.unique_dates[index]
-        self.day_df = self.df.loc[self.df.date.between(self.date - timedelta(days=1), self.date)]
+        date_positions = np.where(self.df.date == self.date)[0]
+        first_date_index = date_positions[0]
+        last_date_index = date_positions[-1]
+        self.day_df = self.df.iloc[min(0, first_date_index - self.window_len) + 1:last_date_index + 1]
         first_index = np.where(
-            (self.day_df == self.date) & (self.day_df.secs > self.trade_start_secs)
+            (self.day_df.date == self.date) & (self.day_df.secs >= self.trade_start_secs)
         )[0][0]
         self.cursor = first_index
         self.total_rewards = 0
         # features in each channel are differences. Set them to zero at the start of the day
         self.day_df.loc[self.day_df.index[self.cursor], self.diff_features] = 0
-        return self.day_df.iloc[self.cursor - self.window_len:self.cursor][self.all_features].values.astype(np.float32)
+        state = self.day_df.iloc[self.cursor - self.window_len + 1:self.cursor + 1][self.all_features].T.values.astype(np.float32)
+        #print('restate ', state.shape, self.day_df.shape, self.cursor, self.date)
+        return state
 
     def step(self, action):
         action_val = self.actions[action]
-        state, reward, done, info = super(Environment, self).step_w_action(action_val)
-        state = self.day_df.iloc[self.cursor - self.window_len:self.cursor][self.all_features].values.astype(np.float32)
+        state, reward, done, info = super(CNNEnvironment, self).step_w_action(action_val)
+        state = self.day_df.iloc[self.cursor - self.window_len + 1:self.cursor + 1][self.all_features].T.values.astype(np.float32)
+        #print('state ', state.shape, self.cursor, self.day_df.shape, done, reward)
         return state, reward, done, info
 
 
@@ -74,7 +81,10 @@ class EnvCNNSkipState(CNNEnvironment):
             df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
             df = df.loc[df.time.between(datetime.datetime(2010, 1, 1), datetime.datetime(2013, 1, 1))]
         #feature_cols = ['mv_std', 'std_frac', 'sto', 'rsi', 'secs'] 'rsi', 'adx'
-        feature_cols = ['pr_diff_ewa', 'volume_roc', 'sto', 'rsi', 'adx', 'secs']
+        feature_cols = ['close']
         meta_cols = ['open', 'high', 'low', 'close', 'date', 'time']
-        super(EnvSkipStateTraining, self).__init__(df, feature_cols, meta_cols, actions=[-10, -5.0, -3,0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0,
-                                                   random_samp=True)
+        super(EnvCNNSkipState, self).__init__(
+            df, feature_cols, meta_cols, actions=[-10, -5.0, -3,0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0],
+            min_obs=5, random_samp=False)
+        if set_date:
+            super(EnvCNNSkipState, self).set_date(self.unique_dates[1])

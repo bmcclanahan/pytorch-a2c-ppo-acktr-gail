@@ -23,7 +23,7 @@ class Policy(nn.Module):
             elif len(obs_shape) == 2:
                 base = CNNBase1D
             elif len(obs_shape) == 1:
-                base = MLPBase
+                base = MLPBaseSingle
             else:
                 raise NotImplementedError
 
@@ -200,12 +200,12 @@ class CNNBase(NNBase):
 
 
 class CNNBase1D(NNBase):
-    def __init__(self, num_inputs, recurrent=False, hidden_size=512):
-        super(CNNBase, self).__init__(recurrent, hidden_size, hidden_size)
+    def __init__(self, num_inputs, recurrent=False, hidden_size=512, **kwargs):
+        super(CNNBase1D, self).__init__(recurrent, hidden_size, hidden_size)
 
         init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
                                constant_(x, 0), nn.init.calculate_gain('relu'))
-
+        #expected input length is 360
         self.main = nn.Sequential(
             init_(nn.Conv1d(num_inputs, 32, 8, stride=4)), nn.ReLU(),
             init_(nn.Conv1d(32, 64, 4, stride=2)), nn.ReLU(),

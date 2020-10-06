@@ -60,6 +60,10 @@ register(
     id='FuturesEnvFullPosSpace-v0',
     entry_point='futures_env.environment:EnvFullPosSpace',
 )
+register(
+    id='FuturesEnvCNN-v0',
+    entry_point='futures_env.environment_cnn:EnvCNNSkipState',
+)
 
 
 def main():
@@ -111,7 +115,6 @@ def main():
         actor_critic = Policy(
             envs.observation_space.shape,
             envs.action_space,
-            base=MLPBaseSingle,
             base_kwargs={
                 'recurrent': args.recurrent_policy,
                 'hidden_size': args.hidden_size,
