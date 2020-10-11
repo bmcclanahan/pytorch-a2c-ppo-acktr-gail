@@ -93,7 +93,7 @@ def make_vec_envs(env_name,
     else:
         envs = DummyVecEnv(envs)
 
-    if len(envs.observation_space.shape) == 1:
+    if len(envs.observation_space.shape) == 1 or len(envs.observation_space.shape) == 2:
         print('using normalize vector environment...')
         if True: #gamma is None: # hack to avoid scaling rewards here
             envs = VecNormalize(envs, ret=False, normalizer=normalizer)

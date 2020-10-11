@@ -75,6 +75,7 @@ class Environment(gym.Env):
         super(Environment, self).__init__()
         self.df = df
         self.df = self.df.sort_values('time')
+        self.df.loc[:, 'timestamp'] = df.time.apply(lambda x: x.timestamp())
         self.day_df = None
         self.date = df.date.iloc[0]
         self.unique_dates = self.df.date.unique()
@@ -443,8 +444,8 @@ class EnvSkipStateTraining(Environment):
         if df is None:
             df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
             df = df.loc[df.time.between(datetime.datetime(2010, 1, 1), datetime.datetime(2013, 1, 1))]
-        #feature_cols = ['mv_std', 'std_frac', 'sto', 'rsi', 'secs'] 'rsi', 'adx'
-        feature_cols = ['pr_diff_ewa', 'volume_roc', 'sto', 'rsi', 'adx', 'secs']
+        feature_cols = ['mv_std', 'std_frac', 'sto', 'rsi', 'secs']
+        #feature_cols = ['pr_diff_ewa', 'volume_roc', 'sto', 'rsi', 'adx', 'secs']
         meta_cols = ['open', 'high', 'low', 'close', 'date', 'time']
         super(EnvSkipStateTraining, self).__init__(df, feature_cols, meta_cols, actions=[-10, -5.0, -3,0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0], min_obs=5, add_features=0,
                                                    random_samp=True)

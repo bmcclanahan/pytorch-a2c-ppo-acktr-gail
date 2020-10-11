@@ -205,12 +205,13 @@ class CNNBase1D(NNBase):
 
         init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
                                constant_(x, 0), nn.init.calculate_gain('relu'))
+        
         #expected input length is 360
         self.main = nn.Sequential(
             init_(nn.Conv1d(num_inputs, 32, 8, stride=4)), nn.ReLU(),
             init_(nn.Conv1d(32, 64, 4, stride=2)), nn.ReLU(),
             init_(nn.Conv1d(64, 16, 3, stride=1)), nn.ReLU(), Flatten(),
-            init_(nn.Linear(16 * 41, hidden_size)), nn.ReLU()) # 16 * 41
+            init_(nn.Linear(16 * 41, hidden_size)), nn.ReLU()) # 16 * 41 # 16 * 4
 
         init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
                                constant_(x, 0))

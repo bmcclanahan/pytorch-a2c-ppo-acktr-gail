@@ -92,12 +92,12 @@ class EnvCNNSkipState(CNNEnvironment):
             df = pd.read_parquet('/Users/brianmcclanahan/git_repos/pytorch-a2c-ppo-acktr-gail/datasets/S_and_P_train2.parquet')
             #df = df.loc[df.time.between(datetime.datetime(2010, 1, 1), datetime.datetime(2013, 1, 1))]
         #feature_cols = ['mv_std', 'std_frac', 'sto', 'rsi', 'secs'] 'rsi', 'adx'
-        feature_cols = ['close']
-        scaler_features = ['volume']
+        feature_cols = ['close', 'open']
+        scaler_features = [] #['volume']
         meta_cols = ['open', 'high', 'low', 'close', 'date', 'time']
         super(EnvCNNSkipState, self).__init__(
             df, feature_cols, meta_cols, actions=[-10, -5.0, -3,0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0],
-            min_obs=5, random_samp=False, window_len=360,
-            scaler_features=scaler_features, normalize_feats=True)
+            min_obs=5, random_samp=(not set_date), window_len=360,
+            scaler_features=scaler_features, normalize_feats=False)
         if set_date:
             super(EnvCNNSkipState, self).set_date(self.unique_dates[1])
