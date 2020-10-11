@@ -97,7 +97,7 @@ class EnvCNNSkipState(CNNEnvironment):
         meta_cols = ['open', 'high', 'low', 'close', 'date', 'time']
         super(EnvCNNSkipState, self).__init__(
             df, feature_cols, meta_cols, actions=[-10, -5.0, -3,0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0],
-            min_obs=5, random_samp=(not set_date), window_len=360,
+            min_obs=5, random_samp=(not set_date), window_len=16,
             scaler_features=scaler_features, normalize_feats=False)
         if set_date:
             super(EnvCNNSkipState, self).set_date(self.unique_dates[1])

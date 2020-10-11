@@ -182,6 +182,11 @@ def get_args(cl=True):
         '--load-saved-model',
         default=None,
         help='location of pretrained saved model to load (default: None)')
+    parser.add_argument(
+        '--viz-params',
+        action='store_true',
+        default=None,
+        help='visuzlize the parmeters of the model in tensorboard (default: None)')
     if cl:
         args = parser.parse_args()
 
