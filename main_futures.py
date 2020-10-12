@@ -19,6 +19,7 @@ from a2c_ppo_acktr.arguments import get_args
 from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.model import Policy, MLPBaseSingle, CNNBase1D
 from a2c_ppo_acktr.storage import RolloutStorage
+from a2c_ppo_acktr.distributions import Bernoulli, Categorical, DiagGaussian
 from evaluation import evaluate
 from gym.envs.registration import register
 from futures_env.environment import EnvironmentContinuous,  EnvFullCont
@@ -271,6 +272,7 @@ def main():
             writer.add_scalar('max reward', rw_max, j)
             writer.add_scalar('min reward', rw_min, j)
             if args.viz_params:
+                # move this section to it's on module eventually
                 if type(actor_critic.base) == CNNBase1D:
                     base = actor_critic.base
                     writer.add_histogram(
@@ -280,9 +282,16 @@ def main():
                         'conv1.weight', base.main[0].weight, j
                     )
                     writer.add_histogram(
-                        'conv1.weight', base.main[0].weight.grad, j
+                        'conv1.weight.grad', base.main[0].weight.grad, j
                     )
-
+                if type(actor_critic.dist == Categorical):
+                    writer.add_histogram(
+                        'cat.linear.weghts', actor_critic.dist.linear.weight, j
+                    )
+                    writer.add_histogram(
+                        'cat.linear.weghts.grad',
+                        actor_critic.dist.linear.weight.grad, j
+                    )
 
         if (((j % args.validation_interval) == 0) or (j == num_updates - 1)) and validate:
             normalizer = getattr(utils.get_vec_normalize(envs), 'ob_rms', None)
