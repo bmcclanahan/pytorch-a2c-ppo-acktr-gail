@@ -423,7 +423,7 @@ class EnvFullPosSpace(EnvironmentNoSkipPosSpace):
 
 class EnvPosSpace(EnvironmentNoSkipPosSpace):
 
-    def __init__(self, df=None, set_date=True, random_samp=True):
+    def __init__(self, df=None, set_date=True, random_samp=False):
         if df is None:
             df = pd.read_parquet('/Users/brianmcclanahan/git_repos/pytorch-a2c-ppo-acktr-gail/datasets/S_and_P_train2.parquet')
         feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']

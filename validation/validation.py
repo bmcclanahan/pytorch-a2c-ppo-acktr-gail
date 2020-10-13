@@ -49,6 +49,7 @@ def validate_date(date, model, normalizer, env, masks, hxs, iter=1):
         if in_trade and not env.in_trade:
             ep_reward += reward
             trade_actions.append(action)
+            cursor = min(env.cursor, env.day_df.shape[0] - 1)
             exit_times.append(env.day_df.iloc[env.cursor].timestamp)
             in_trade = False
         if done:
