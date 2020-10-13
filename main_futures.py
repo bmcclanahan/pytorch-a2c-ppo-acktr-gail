@@ -305,7 +305,7 @@ def main():
                         actor_critic.dist.linear.weight.grad, j
                     )
 
-        if (((j % args.validation_interval) == 0) or (j == num_updates - 1)) and validate:
+        if (((j % args.validation_interval) == 0) or (j == (num_updates - 1))) and validate:
             normalizer = getattr(utils.get_vec_normalize(envs), 'ob_rms', None)
             if normalizer is None:
                 normalizer = lambda: None

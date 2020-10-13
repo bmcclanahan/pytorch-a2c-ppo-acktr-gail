@@ -38,6 +38,7 @@ def validate_date(date, model, normalizer, env, masks, hxs, iter=1):
         # select action from policy
         action, hxs = select_action(model, normalize(state, normalizer.mean,
                                     normalizer.var), hxs, masks)
+        #print('action ', action)
         if (env.actions[int(action)] != 0) and not in_trade:
             in_trade = True
             entry_times.append(env.day_df.iloc[env.cursor].timestamp)

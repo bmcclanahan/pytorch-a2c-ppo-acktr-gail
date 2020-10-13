@@ -295,6 +295,7 @@ class EnvironmentNoSkipPosSpace(Environment):
             state_cursor = min(next_cursor, self.day_df.shape[0] - 1)
             state = self.day_df.iloc[state_cursor][self.features].values.astype(np.float32)
             if not self.in_trade:
+                #print('entering trade at ', self.day_df.iloc[self.cursor].close, ' position ', action_val)
                 self.in_trade = True
                 self.trade_position = action_val
                 self.trade_entry_price = self.day_df.iloc[self.cursor].close # this may be a little innacurate because we're using the close of the current bar which is the state
@@ -304,14 +305,19 @@ class EnvironmentNoSkipPosSpace(Environment):
                 done = False
             elif ((next_cursor) >= self.day_df.shape[0]) or (action_val == -self.trade_position):
                 state_reward = 0
-                reward = (self.day_df.iloc[state_cursor].open - self.trade_entry_price) * self.trade_position
+                reward = (self.day_df.iloc[state_cursor].open - self.trade_entry_price) * self.trade_position #debating whether to use next_cursor or state cursor here
                 self.in_trade = False
                 self.trade_exits.append(state[-1])
                 done = (next_cursor) >= self.day_df.shape[0]
+
+                #if next_cursor >  self.day_df.shape[0] - 1: #force algo to find non trivial solutions
+                #    reward = -np.abs(reward)
+                #print('exiting trade at ', self.day_df.iloc[state_cursor].close, ' position ', action_val, ' reward ', reward)
             else:
                 state_reward = (self.day_df.iloc[state_cursor].open - self.trade_entry_price) * self.trade_position
                 reward = 0
                 done = False
+                #print('walking trade foward ', self.day_df.iloc[state_cursor].close, ' position ', action_val)
             state = np.hstack(([state_reward], state)).astype(np.float32)
             self.day_df.loc[self.day_df.index[state_cursor], 'state_reward']  = state_reward# can add state reward in  features somehow
 
@@ -411,7 +417,7 @@ class EnvFullV2(EnvironmentNoSkip):
 
 class EnvFullPosSpace(EnvironmentNoSkipPosSpace):
 
-    def __init__(self, df=None, set_date=True, random_samp=True):
+    def __init__(self, df=None, set_date=False, random_samp=True):
         if df is None:
             df = pd.read_parquet('/Users/brianmcclanahan/git_repos/AllAboutFuturesRL/historical_index_data/S_and_P_historical.parquet')
         feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']
@@ -419,7 +425,7 @@ class EnvFullPosSpace(EnvironmentNoSkipPosSpace):
         super(EnvFullPosSpace, self).__init__(df, feature_cols, meta_cols, min_obs=5, add_features=1,
                                               random_samp=random_samp)
         if set_date:
-            super(EnvFullPosSpace, self).set_date(self.unique_dates[1])
+            super(EnvFullPosSpace, self).set_date(self.unique_dates[18])
 
 class EnvPosSpace(EnvironmentNoSkipPosSpace):
 
@@ -431,7 +437,7 @@ class EnvPosSpace(EnvironmentNoSkipPosSpace):
         super(EnvPosSpace, self).__init__(df, feature_cols, meta_cols, min_obs=5, add_features=1,
                                               random_samp=random_samp)
         if set_date:
-            super(EnvPosSpace, self).set_date(self.unique_dates[1])
+            super(EnvPosSpace, self).set_date(self.unique_dates[19])
 
 class EnvFullContTraining(EnvironmentContinuous):
 
