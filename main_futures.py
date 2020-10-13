@@ -58,6 +58,11 @@ register(
 )
 
 register(
+    id='FuturesEnvPosSpace-v0',
+    entry_point='futures_env.environment:EnvPosSpace',
+)
+
+register(
     id='FuturesEnvFullPosSpace-v0',
     entry_point='futures_env.environment:EnvFullPosSpace',
 )
@@ -70,6 +75,8 @@ register(
     id='FuturesEnvCNNPosSpace-v0',
     entry_point='futures_env.environment_cnn:EnvCNNPosSpace',
 )
+
+
 
 
 def main():

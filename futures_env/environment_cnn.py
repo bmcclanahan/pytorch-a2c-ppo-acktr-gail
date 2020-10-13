@@ -124,7 +124,7 @@ class CNNEnvironmentSkipStatePosSpace(CNNEnvironment, EnvironmentNoSkipPosSpace)
 
 class EnvCNNSkipState(CNNEnvironment):
 
-    def __init__(self, df=None, set_date=False): # set date is just here for compatibility
+    def __init__(self, df=None, set_date=True): # set date is just here for compatibility
         if df is None:
             df = pd.read_parquet('/Users/brianmcclanahan/git_repos/pytorch-a2c-ppo-acktr-gail/datasets/S_and_P_train2.parquet')
             #df = df.loc[df.time.between(datetime.datetime(2010, 1, 1), datetime.datetime(2013, 1, 1))]
@@ -137,7 +137,7 @@ class EnvCNNSkipState(CNNEnvironment):
 
         meta_cols = ['open', 'high', 'low', 'close', 'date', 'time']
         super(EnvCNNSkipState, self).__init__(
-            df, feature_cols, meta_cols, actions=[-10, -5.0, -3,0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0], # try adding 1 here
+            df, feature_cols, meta_cols, actions=[-10, -5.0, -3.0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0], # [-10, -5.0, -2.0, -1.0, 0.0, 1.0, 2.0, 5.0, 10.0] try adding 1 here
             min_obs=5, random_samp=(not set_date), window_len=360,
             scaler_features=scaler_features, normalize_feats=False)
         if set_date:
@@ -147,7 +147,7 @@ class EnvCNNSkipState(CNNEnvironment):
 class EnvCNNPosSpace(CNNEnvironmentSkipStatePosSpace):
 
 
-    def __init__(self, df=None, set_date=False): # set date is just here for compatibility
+    def __init__(self, df=None, set_date=True): # set date is just here for compatibility
         if df is None:
             df = pd.read_parquet('/Users/brianmcclanahan/git_repos/pytorch-a2c-ppo-acktr-gail/datasets/S_and_P_train2.parquet')
             #df = df.loc[df.time.between(datetime.datetime(2010, 1, 1), datetime.datetime(2013, 1, 1))]
@@ -164,4 +164,4 @@ class EnvCNNPosSpace(CNNEnvironmentSkipStatePosSpace):
             min_obs=5, random_samp=(not set_date), window_len=360,
             scaler_features=scaler_features, normalize_feats=False)
         if set_date:
-            super(CNNPosSpace, self).set_date(self.unique_dates[1])
+            super(EnvCNNPosSpace, self).set_date(self.unique_dates[1])

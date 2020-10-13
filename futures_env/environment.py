@@ -276,7 +276,7 @@ class EnvironmentNoSkipPosSpace(Environment):
 
     def step(self, action):
         action_val = self.actions[action]
-        state, reward, done, info, state_reward = self.step_w_action(action_val)
+        state, reward, done, info = self.step_w_action(action_val)
         return state, reward, done, info
 
     def step_w_action(self, action_val):
@@ -421,6 +421,17 @@ class EnvFullPosSpace(EnvironmentNoSkipPosSpace):
         if set_date:
             super(EnvFullPosSpace, self).set_date(self.unique_dates[1])
 
+class EnvPosSpace(EnvironmentNoSkipPosSpace):
+
+    def __init__(self, df=None, set_date=True, random_samp=True):
+        if df is None:
+            df = pd.read_parquet('/Users/brianmcclanahan/git_repos/pytorch-a2c-ppo-acktr-gail/datasets/S_and_P_train2.parquet')
+        feature_cols = ['mv_std', 'mean_dist', 'std_frac', 'sto', 'rsi', 'close_diff', 'secs']
+        meta_cols = ['open', 'high', 'low', 'close', 'mv_avg', 'date', 'time', 'timestamp']
+        super(EnvPosSpace, self).__init__(df, feature_cols, meta_cols, min_obs=5, add_features=1,
+                                              random_samp=random_samp)
+        if set_date:
+            super(EnvPosSpace, self).set_date(self.unique_dates[1])
 
 class EnvFullContTraining(EnvironmentContinuous):
 
