@@ -66,6 +66,11 @@ register(
     entry_point='futures_env.environment_cnn:EnvCNNSkipState',
 )
 
+register(
+    id='FuturesEnvCNNPosSpace-v0',
+    entry_point='futures_env.environment_cnn:EnvCNNPosSpace',
+)
+
 
 def main():
     args = get_args()

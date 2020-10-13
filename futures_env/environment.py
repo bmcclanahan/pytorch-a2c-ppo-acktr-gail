@@ -101,6 +101,8 @@ class Environment(gym.Env):
             self.process_features()
         if normalize_feats:
             self.normalize_features()
+        self.trade_entries = []
+        self.trade_exits = []
 
     def process_features(self):
         df = self.df[self.features[:-1] + self.meta_cols] # excludind secs from features
@@ -269,11 +271,12 @@ class EnvironmentNoSkipPosSpace(Environment):
 
     def reset(self):
         state = super(EnvironmentNoSkipPosSpace, self).reset()
+        self.day_df.loc[:, 'state_reward'] = 0
         return np.hstack(([0], state)).astype(np.float32)
 
     def step(self, action):
         action_val = self.actions[action]
-        state, reward, done, info = self.step_w_action(action_val)
+        state, reward, done, info, state_reward = self.step_w_action(action_val)
         return state, reward, done, info
 
     def step_w_action(self, action_val):
@@ -289,6 +292,8 @@ class EnvironmentNoSkipPosSpace(Environment):
             # So we will assume it's possible to get a fill at the closing price
             # of the bar.
             next_cursor = self.cursor + 1
+            state_cursor = min(next_cursor, self.day_df.shape[0] - 1)
+            state = self.day_df.iloc[state_cursor][self.features].values.astype(np.float32)
             if not self.in_trade:
                 self.in_trade = True
                 self.trade_position = action_val
@@ -296,23 +301,19 @@ class EnvironmentNoSkipPosSpace(Environment):
                 self.trade_entries.append(self.day_df.iloc[self.cursor][self.features].values.astype(np.float32)[-1])
                 state_reward = 0
                 reward = 0
-                state = self.day_df.iloc[next_cursor][self.features].values.astype(np.float32)
                 done = False
             elif ((next_cursor) >= self.day_df.shape[0]) or (action_val == -self.trade_position):
                 state_reward = 0
-                cursor = min(next_cursor, self.day_df.shape[0] - 1)
-                reward = (self.day_df.iloc[cursor].open - self.trade_entry_price) * self.trade_position
-                state = self.day_df.iloc[cursor][self.features].values.astype(np.float32)
+                reward = (self.day_df.iloc[state_cursor].open - self.trade_entry_price) * self.trade_position
                 self.in_trade = False
                 self.trade_exits.append(state[-1])
                 done = (next_cursor) >= self.day_df.shape[0]
             else:
-                state_reward = (self.day_df.iloc[next_cursor].open - self.trade_entry_price) * self.trade_position
+                state_reward = (self.day_df.iloc[state_cursor].open - self.trade_entry_price) * self.trade_position
                 reward = 0
-                state = self.day_df.iloc[next_cursor][self.features].values.astype(np.float32)
                 done = False
-
             state = np.hstack(([state_reward], state)).astype(np.float32)
+            self.day_df.loc[self.day_df.index[state_cursor], 'state_reward']  = state_reward# can add state reward in  features somehow
 
             self.cursor = next_cursor
 

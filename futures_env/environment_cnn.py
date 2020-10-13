@@ -6,7 +6,7 @@ import gym
 from gym import spaces
 import datetime
 from datetime import timedelta
-from .environment import Environment
+from .environment import Environment, EnvironmentNoSkipPosSpace
 
 
 # we will start simple with an assumed position size of 1 always but will consider enhancements in future
@@ -22,8 +22,8 @@ class CNNEnvironment(Environment):
         self.diff_features = [f'{feat}_diff' for feat in diff_features]
         self.all_features = self.diff_features + scaler_features
         self.normalize_feats = normalize_feats
-        super(CNNEnvironment, self).__init__(
-            df, diff_features, meta_cols,
+        Environment.__init__(
+            self, df, diff_features, meta_cols,
             actions=actions,
             min_obs=min_obs,
             add_features=0,
@@ -85,6 +85,43 @@ class CNNEnvironment(Environment):
         return state, reward, done, info
 
 
+class CNNEnvironmentSkipStatePosSpace(CNNEnvironment, EnvironmentNoSkipPosSpace):
+
+    def __init__(self, df, diff_features, meta_cols, scaler_features=[],
+                 actions=[-1.0, 0.0, 1.0],
+                 window_len=360, min_obs=5, skip_state=True,
+                 normalize_feats=False, low=-10, high=10, process_feats=True,
+                 random_samp=False, trade_start_secs=int(3600 * 9.5)):
+        CNNEnvironment.__init__(
+            self, df, diff_features, meta_cols,
+            scaler_features=scaler_features, actions=actions,
+            window_len=window_len, min_obs=min_obs, skip_state=skip_state,
+            normalize_feats=normalize_feats, low=-low, high=high,
+            process_feats=process_feats, random_samp=random_samp,
+            trade_start_secs=trade_start_secs
+        )
+        self.observation_space = spaces.Box(
+            low=-np.inf, high=np.inf,
+            shape=(len(self.all_features) + 1, window_len),
+            dtype=np.float32
+        )
+
+
+    def reset(self):
+        CNNEnvironment.reset(self)
+        self.day_df.loc[:, 'state_reward'] = 0
+        state = self.day_df.iloc[self.cursor - self.window_len + 1:self.cursor + 1][self.all_features + ['state_reward']].T.values.astype(np.float32)
+        #print('restate ', state.shape, self.day_df.shape, self.cursor, self.date)
+        return state
+
+    def step(self, action):
+        action_val = self.actions[action]
+        state, reward, done, info = EnvironmentNoSkipPosSpace.step_w_action(self, action_val)
+        state = self.day_df.iloc[self.cursor - self.window_len + 1:self.cursor + 1][self.all_features + ['state_reward']].T.values.astype(np.float32)
+        #print('state ', state.shape, self.cursor, self.day_df.shape, done, reward)
+        return state, reward, done, info
+
+
 class EnvCNNSkipState(CNNEnvironment):
 
     def __init__(self, df=None, set_date=False): # set date is just here for compatibility
@@ -100,8 +137,31 @@ class EnvCNNSkipState(CNNEnvironment):
 
         meta_cols = ['open', 'high', 'low', 'close', 'date', 'time']
         super(EnvCNNSkipState, self).__init__(
-            df, feature_cols, meta_cols, actions=[-10, -5.0, -3,0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0],
+            df, feature_cols, meta_cols, actions=[-10, -5.0, -3,0, -2.0, 0.0, 2.0, 3.0, 5.0, 10.0], # try adding 1 here
             min_obs=5, random_samp=(not set_date), window_len=360,
             scaler_features=scaler_features, normalize_feats=False)
         if set_date:
             super(EnvCNNSkipState, self).set_date(self.unique_dates[1])
+
+
+class EnvCNNPosSpace(CNNEnvironmentSkipStatePosSpace):
+
+
+    def __init__(self, df=None, set_date=False): # set date is just here for compatibility
+        if df is None:
+            df = pd.read_parquet('/Users/brianmcclanahan/git_repos/pytorch-a2c-ppo-acktr-gail/datasets/S_and_P_train2.parquet')
+            #df = df.loc[df.time.between(datetime.datetime(2010, 1, 1), datetime.datetime(2013, 1, 1))]
+        #feature_cols = ['mv_std', 'std_frac', 'sto', 'rsi', 'secs'] 'rsi', 'adx'
+        df.loc[:, ['rsi', 'sto']] = df.loc[:, ['rsi', 'sto']]\
+                                      .fillna(50)\
+                                      .clip(lower=0, upper=100,)
+        feature_cols = ['close', 'open']
+        scaler_features = ['rsi', 'sto'] #['volume']
+
+        meta_cols = ['open', 'high', 'low', 'close', 'date', 'time']
+        super(EnvCNNPosSpace, self).__init__(
+            df, feature_cols, meta_cols, actions=[-1.0, 0.0, 1.0],
+            min_obs=5, random_samp=(not set_date), window_len=360,
+            scaler_features=scaler_features, normalize_feats=False)
+        if set_date:
+            super(CNNPosSpace, self).set_date(self.unique_dates[1])
