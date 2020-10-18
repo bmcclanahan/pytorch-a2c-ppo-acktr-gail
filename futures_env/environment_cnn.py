@@ -78,7 +78,7 @@ class CNNEnvironment(Environment):
         return state
 
     def step(self, action):
-        action_val = self.actions[action]
+        action_val = self.actions[int(action)]
         state, reward, done, info = super(CNNEnvironment, self).step_w_action(action_val)
         state = self.day_df.iloc[self.cursor - self.window_len + 1:self.cursor + 1][self.all_features].T.values.astype(np.float32)
         #print('state ', state.shape, self.cursor, self.day_df.shape, done, reward)

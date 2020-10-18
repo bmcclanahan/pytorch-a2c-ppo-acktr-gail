@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 
-def select_action(model, state, hxs, masks):
-    state = torch.from_numpy(state).float()
+def select_action(model, state, hxs, masks, device):
+    state = torch.from_numpy(state).float().to(device)
     state_value, action, action_log_probs, hxs = model.act(
         state.unsqueeze(0), hxs, masks, deterministic=True, return_dist=False
     )
@@ -18,7 +18,7 @@ def validate_date_wrap(date, model, normalizer, env):
     hxs = torch.zeros(model.base._hidden_size).unsqueeze(0)
     return validate_date(date, model, normalizer, env, masks, hxs)
 
-def validate_date(date, model, normalizer, env, masks, hxs, iter=1):
+def validate_date(date, model, normalizer, env, masks, hxs, device, iter=1):
     running_reward = 0
     last_rewards = []
     entry_times = []
@@ -37,7 +37,7 @@ def validate_date(date, model, normalizer, env, masks, hxs, iter=1):
     while not done:
         # select action from policy
         action, hxs = select_action(model, normalize(state, normalizer.mean,
-                                    normalizer.var), hxs, masks)
+                                    normalizer.var), hxs, masks, device)
         #print('action ', action)
         if (env.actions[int(action)] != 0) and not in_trade:
             in_trade = True
@@ -60,14 +60,14 @@ def validate_date(date, model, normalizer, env, masks, hxs, iter=1):
     #      iter, ep_reward))
     return ep_reward, entry_times, exit_times, positions
 
-def validator(model, normalizer, env):
+def validator(model, normalizer, env, device):
     val_dates = sorted(env.unique_dates)
     total_rewards = []
-    masks = torch.ones(model.base._hidden_size).unsqueeze(0)
-    hxs = torch.zeros(model.base._hidden_size).unsqueeze(0)
+    masks = torch.ones(model.base._hidden_size).unsqueeze(0).to(device)
+    hxs = torch.zeros(model.base._hidden_size).unsqueeze(0).to(device)
     for iter, date in enumerate(val_dates):
         ep_reward, _, _, _ = validate_date(date, model, normalizer, env,
-                                           masks, hxs, iter=iter)
+                                           masks, hxs, device, iter=iter)
         total_rewards.append(ep_reward)
         hxs *= 0
     mean_reward = np.mean(total_rewards)

@@ -311,7 +311,7 @@ def main():
                 normalizer = lambda: None
                 normalizer.mean = 1
                 normalizer.var = 1
-            avg_reward = validation.validator(actor_critic, normalizer, val_env)
+            avg_reward = validation.validator(actor_critic, normalizer, val_env, device)
             writer.add_scalar('validation mean reward', avg_reward, j)
 
 
