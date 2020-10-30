@@ -133,7 +133,7 @@ class EnvCNNSkipState(CNNEnvironment):
                                       .fillna(50)\
                                       .clip(lower=0, upper=100,)
         feature_cols = ['close', 'open']
-        scaler_features = ['rsi', 'sto'] #['volume']
+        scaler_features = ['rsi', 'sto', 'secs'] #['volume']
 
         meta_cols = ['open', 'high', 'low', 'close', 'date', 'time']
         super(EnvCNNSkipState, self).__init__(

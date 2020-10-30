@@ -72,5 +72,7 @@ def validator(model, normalizer, env, device):
         hxs *= 0
     mean_reward = np.mean(total_rewards)
     std_reward = np.std(total_rewards)
-    print(f'validation mean reward: {mean_reward} std: {std_reward} total_trades: {len(total_rewards)}')
+    min_reward = np.min(total_rewards)
+    max_reward = np.max(total_rewards)
+    print(f'validation mean reward: {mean_reward} std: {std_reward}  min/max: {min_reward}/{max_reward}  total_trades: {len(total_rewards)}')
     return mean_reward
